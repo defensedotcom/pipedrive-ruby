@@ -16,12 +16,11 @@ module Pipedrive
 
     include HTTParty
 
-    base_uri 'https://api.pipedrive.com/v1'
     headers HEADERS
     format :json
 
     extend Forwardable
-    def_delegators 'self.class', :delete, :get, :post, :put, :resource_path, :bad_response
+    def_delegators 'self.class', :delete, :get, :post, :put, :patch, :resource_path, :bad_response
 
     attr_reader :data
 
@@ -74,7 +73,9 @@ module Pipedrive
     # @param [Hash] opts
     # @return [Boolean]
     def update(opts = {})
-      res = put "#{resource_path}/#{id}", :body => opts
+      # Use PATCH for v2 resources, PUT for v1 resources
+      http_method = self.class.api_version == 'v2' ? :patch : :put
+      res = send(http_method, "#{resource_path}/#{id}", :body => opts, headers: headers)
       if res.success?
         res['data'] = Hash[res['data'].map {|k, v| [k.to_sym, v] }]
         @table.merge!(res['data'])
@@ -92,12 +93,49 @@ module Pipedrive
     end
 
     class << self
+      # Returns the API version to use for this resource
+      # Override in subclasses to specify v2
+      #
+      # @return [String] API version ('v1' or 'v2')
+      def api_version
+        'v1'
+      end
+
+      # Returns the base URI for the resource based on its API version
+      #
+      # @return [String] Base URI
+      def base_uri_for_version
+        if api_version == 'v2'
+          'https://api.pipedrive.com/api/v2'
+        else
+          'https://api.pipedrive.com/v1'
+        end
+      end
+
+      # Override HTTParty methods to use dynamic base_uri and authentication
+      [:get, :post, :put, :patch, :delete].each do |method|
+        define_method(method) do |path, options = {}|
+          self.base_uri(base_uri_for_version)
+
+          # Apply authentication based on API version
+          if api_version == 'v2'
+            # v2 uses header authentication
+            options[:headers] ||= {}
+            options[:headers]['x-api-token'] = @api_token if @api_token
+          end
+          # v1 uses query parameter authentication (handled by default_params)
+
+          super(path, options)
+        end
+      end
+
       # Sets the authentication credentials in a class variable.
       #
-      # @param [String] email cl.ly email
-      # @param [String] password cl.ly password
+      # @param [String] token Pipedrive API token
       # @return [Hash] authentication credentials
       def authenticate(token)
+        @api_token = token
+        # v1 resources use query parameter authentication
         default_params :api_token => token
       end
 

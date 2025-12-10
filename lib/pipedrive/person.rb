@@ -1,6 +1,10 @@
 module Pipedrive
   class Person < Base
 
+    def self.api_version
+      'v2'
+    end
+
     class << self
 
       def find_or_create_by_name(name, opts={})
@@ -27,7 +31,9 @@ module Pipedrive
     end
 
     def merge(opts = {})
-      res = put "#{resource_path}/#{id}/merge", :body => opts
+      # Use PATCH for v2 resources, PUT for v1 resources
+      http_method = self.class.api_version == 'v2' ? :patch : :put
+      res = send(http_method, "#{resource_path}/#{id}/merge", :body => opts)
       res.success? ? res['data'] : bad_response(res,opts)
     end
 

@@ -2,7 +2,11 @@ require 'date'
 
 module Pipedrive
   class Activity < Base
-    
+
+    def self.api_version
+      'v2'
+    end
+
     # Gets the date of the activity
     #
     # @return [DateTime]

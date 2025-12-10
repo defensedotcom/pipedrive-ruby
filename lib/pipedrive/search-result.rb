@@ -1,6 +1,10 @@
 module Pipedrive
   class SearchResult < Base
 
+    def self.api_version
+      'v2'
+    end
+
     # Class Methods
     class << self
       

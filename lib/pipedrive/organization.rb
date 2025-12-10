@@ -1,5 +1,10 @@
 module Pipedrive
   class Organization < Base
+
+    def self.api_version
+      'v2'
+    end
+
     def persons
       Person.all(get "#{resource_path}/#{id}/persons")
     end
