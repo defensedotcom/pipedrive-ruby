@@ -1,5 +1,10 @@
 module Pipedrive
   class Pipeline < Base
+
+    def self.api_version
+      'v2'
+    end
+
     def stages
       Stage.all(get "/stages", { :pipeline_id => self.id })
     end
