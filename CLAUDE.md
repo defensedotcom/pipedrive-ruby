@@ -46,7 +46,7 @@ All Pipedrive resource classes inherit from `Pipedrive::Base` (lib/pipedrive/bas
 - HTTParty integration with dual API version support
 - Common CRUD operations: `create`, `find`, `all`, `update`, `destroy`
 - Search functionality: `search`, `find_by_name`
-- Authentication via API token using `default_params`
+- Authentication via API token (v1: query param, v2: header)
 - Automatic resource path generation based on class name (e.g., `Deal` → `/deals`, `Activity` → `/activities`)
 - Dynamic base URI selection: `/api/v2` for v2 resources, `/v1` for v1 resources
 

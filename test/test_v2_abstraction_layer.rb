@@ -42,6 +42,7 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
   context "custom field nesting on write" do
     setup do
       stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
       @deal = ::Pipedrive::Deal.find(123)
     end
 
@@ -166,6 +167,7 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
   context "custom field flattening on update response" do
     setup do
       stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
       @deal = ::Pipedrive::Deal.find(123)
     end
 
