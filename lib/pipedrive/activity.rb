@@ -15,7 +15,7 @@ module Pipedrive
     end
     
     # Gets the organization associated to the activity
-    # 
+    #
     # @params [Boolean] force_reload
     # @return [Organization]
     def organization force_reload=false
@@ -23,9 +23,27 @@ module Pipedrive
       if not org_id.nil? and (self[:organization].nil? or force_reload)
         self[:organization] = Organization.find(org_id)
       end
-      
+
       self[:organization]
     end
-    
+
+    # Gets the person associated to the activity
+    #
+    # @return [Person, nil]
+    def person
+      return @person if defined?(@person)
+      return nil unless person_id
+      @person = Person.find(person_id)
+    end
+
+    # Gets the user associated to the activity
+    #
+    # @return [User, nil]
+    def user
+      return @user if defined?(@user)
+      return nil unless user_id
+      @user = User.find(user_id)
+    end
+
   end
 end

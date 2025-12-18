@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "data": {
+    "id": 1746472,
+    "name": "Vincent Jaouen",
+    "default_currency": "USD",
+    "locale": "en_US",
+    "lang": 1,
+    "email": "vincent@jaouen.com",
+    "phone": null,
+    "activated": true,
+    "last_login": "2017-05-23T20:00:00Z",
+    "created": "2017-01-01T00:00:00Z",
+    "modified": "2017-05-23T21:08:48Z",
+    "has_pic": false,
+    "pic_hash": null,
+    "active_flag": true,
+    "role_id": 1,
+    "timezone_name": "America/New_York",
+    "timezone_offset": "-04:00",
+    "is_admin": 1,
+    "company_id": 1223039,
+    "company_name": "Test Company",
+    "company_domain": "testcompany"
+  }
+}
