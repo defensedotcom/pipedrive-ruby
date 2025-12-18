@@ -50,7 +50,7 @@ module Pipedrive
     end
 
     def products
-      # v2 endpoint does not yet exist
+      # V2 uses nested endpoint: GET /api/v2/deals/{id}/products
       Product.all(get "#{resource_path}/#{id}/products")
     end
 
@@ -60,7 +60,8 @@ module Pipedrive
     end
 
     def participants
-      Person.all(get "#{resource_path}/#{id}/participants")
+      # V2 uses query params instead of nested endpoint
+      Person.all(nil, { query: { deal_id: id } })
     end
 
     def add_follower(opts = {})
