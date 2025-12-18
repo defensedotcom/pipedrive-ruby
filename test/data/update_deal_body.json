@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "title": "Updated Deal",
+    "value": 7500,
+    "currency": "USD",
+    "user_id": 1746472,
+    "person_id": 2739,
+    "org_id": 2,
+    "stage_id": 1,
+    "status": "open",
+    "add_time": "2017-05-23T21:08:48Z",
+    "update_time": "2017-05-24T10:00:00Z",
+    "visible_to": "3",
+    "custom_fields": {
+      "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2": {
+        "value": "Updated Custom Value"
+      },
+      "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4": {
+        "value": 129
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "key": "title",
+      "name": "Title",
+      "field_type": "varchar",
+      "options": null
+    },
+    {
+      "id": 2,
+      "key": "value",
+      "name": "Value",
+      "field_type": "monetary",
+      "options": null
+    },
+    {
+      "id": 100,
+      "key": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+      "name": "Yes/No Field",
+      "field_type": "enum",
+      "options": [
+        {
+          "id": 128,
+          "label": "Yes"
+        },
+        {
+          "id": 129,
+          "label": "No"
+        }
+      ]
+    }
+  ]
+}
