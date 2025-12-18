@@ -115,12 +115,8 @@ module Pipedrive
     # @param [Hash] opts
     # @return [Boolean]
     def update(opts = {})
-      # Use PATCH for v2 resources, PUT for v1 resources
-      http_method = self.class.api_version == 'v2' ? :patch : :put
-      headers = HEADERS.dup
-      headers.merge!("Content-Type" => "application/json") if http_method == :patch
-      opts = opts.to_json if http_method == :patch
-      res = send(http_method, "#{resource_path}/#{id}", :body => opts, headers: headers)
+      http_method, request_opts = prepare_update_request(opts)
+      res = send(http_method, "#{resource_path}/#{id}", request_opts)
       if res.success?
         res['data'] = Hash[res['data'].map {|k, v| [k.to_sym, v] }]
         @table.merge!(res['data'])
@@ -135,6 +131,22 @@ module Pipedrive
     def destroy
       res = delete "#{resource_path}/#{id}"
       res.ok? ? res : bad_response(res, id)
+    end
+
+    private
+
+    # Prepares update request based on API version
+    # V2 uses PATCH with JSON body, V1 uses PUT with form-encoded body
+    #
+    # @param [Hash] opts - the update parameters
+    # @return [Array<Symbol, Hash>] - HTTP method and request options
+    def prepare_update_request(opts)
+      if self.class.api_version == 'v2'
+        headers = HEADERS.merge("Content-Type" => "application/json")
+        [:patch, { body: opts.to_json, headers: headers }]
+      else
+        [:put, { body: opts, headers: HEADERS }]
+      end
     end
 
     class << self
