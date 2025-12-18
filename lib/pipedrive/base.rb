@@ -118,8 +118,13 @@ module Pipedrive
       http_method, request_opts = prepare_update_request(opts)
       res = send(http_method, "#{resource_path}/#{id}", request_opts)
       if res.success?
-        res['data'] = Hash[res['data'].map {|k, v| [k.to_sym, v] }]
-        @table.merge!(res['data'])
+        data = res['data']
+        # Flatten custom fields for V2 responses
+        if data.is_a?(Hash) && data['custom_fields']
+          data.merge!(flatten_custom_fields(data['custom_fields']))
+        end
+        data = Hash[data.map {|k, v| [k.to_sym, v] }]
+        @table.merge!(data)
       else
         false
       end
@@ -144,11 +149,47 @@ module Pipedrive
       if self.class.api_version == 'v2'
         # Resolve option labels to IDs for V2 API
         resolved_opts = resolve_option_labels(opts)
+        # Nest custom fields under 'custom_fields' key for V2 API
+        nested_opts = nest_custom_fields(resolved_opts)
         headers = HEADERS.merge("Content-Type" => "application/json")
-        [:patch, { body: resolved_opts.to_json, headers: headers }]
+        [:patch, { body: nested_opts.to_json, headers: headers }]
       else
         [:put, { body: opts, headers: HEADERS }]
       end
+    end
+
+    # Nests custom field keys under 'custom_fields' for V2 API
+    # Custom field keys are 40-character hexadecimal hashes
+    #
+    # @param [Hash] opts - the update parameters
+    # @return [Hash] - parameters with custom fields nested
+    def nest_custom_fields(opts)
+      standard_fields = {}
+      custom_fields = {}
+
+      opts.each do |key, value|
+        key_s = key.to_s
+        if custom_field_key?(key_s)
+          custom_fields[key_s] = value
+        else
+          standard_fields[key_s] = value
+        end
+      end
+
+      if custom_fields.any?
+        standard_fields['custom_fields'] = custom_fields
+      end
+
+      standard_fields
+    end
+
+    # Checks if a key looks like a Pipedrive custom field key
+    # Custom field keys are 40-character hexadecimal strings
+    #
+    # @param [String] key - the field key to check
+    # @return [Boolean] - true if it looks like a custom field key
+    def custom_field_key?(key)
+      key.is_a?(String) && key.match?(/\A[a-f0-9]{40}\z/)
     end
 
     # Resolves option labels (e.g., "Yes", "No") to their corresponding option IDs
