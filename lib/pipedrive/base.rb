@@ -142,11 +142,48 @@ module Pipedrive
     # @return [Array<Symbol, Hash>] - HTTP method and request options
     def prepare_update_request(opts)
       if self.class.api_version == 'v2'
+        # Resolve option labels to IDs for V2 API
+        resolved_opts = resolve_option_labels(opts)
         headers = HEADERS.merge("Content-Type" => "application/json")
-        [:patch, { body: opts.to_json, headers: headers }]
+        [:patch, { body: resolved_opts.to_json, headers: headers }]
       else
         [:put, { body: opts, headers: HEADERS }]
       end
+    end
+
+    # Resolves option labels (e.g., "Yes", "No") to their corresponding option IDs
+    # V2 API requires option IDs, not labels
+    #
+    # @param [Hash] opts - the update parameters
+    # @return [Hash] - parameters with option labels replaced by IDs
+    def resolve_option_labels(opts)
+      field_class = self.class.field_class
+      return opts unless field_class
+
+      resolved = {}
+      opts.each do |key, value|
+        resolved[key] = resolve_single_option(field_class, key.to_s, value)
+      end
+      resolved
+    end
+
+    # Resolves a single option value if it's a string matching an option label
+    #
+    # @param [Class] field_class - the field class (e.g., DealField)
+    # @param [String] field_key - the custom field key
+    # @param [Object] value - the value to potentially resolve
+    # @return [Object] - the option ID if matched, otherwise original value
+    def resolve_single_option(field_class, field_key, value)
+      # Only process string values that could be option labels
+      return value unless value.is_a?(String)
+
+      # Look up field definition
+      field = self.class.find_field_by_key(field_class, field_key)
+      return value unless field&.options.is_a?(Array)
+
+      # Find matching option by label
+      option = field.options.find { |opt| opt['label'] == value }
+      option ? option['id'] : value
     end
 
     class << self
@@ -156,6 +193,49 @@ module Pipedrive
       # @return [String] API version ('v1' or 'v2')
       def api_version
         'v1'
+      end
+
+      # Returns the field class for this resource (e.g., DealField for Deal)
+      # Override in subclasses that have custom fields
+      #
+      # @return [Class, nil] the field class or nil if not applicable
+      def field_class
+        nil
+      end
+
+      # Cache for field definitions, keyed by field key
+      # Structure: { "field_key" => field_object }
+      def field_cache
+        @field_cache ||= {}
+      end
+
+      # Finds a field definition by its key, with caching
+      #
+      # @param [Class] field_class - the field class to query
+      # @param [String] field_key - the field key to look up
+      # @return [Object, nil] the field object or nil if not found
+      def find_field_by_key(field_class, field_key)
+        return field_cache[field_key] if field_cache.key?(field_key)
+
+        # Fetch all fields and cache them (more efficient than individual lookups)
+        unless @fields_loaded
+          begin
+            fields = field_class.all
+            fields.each { |f| field_cache[f.key] = f if f.respond_to?(:key) }
+            @fields_loaded = true
+          rescue => e
+            # If field lookup fails, don't break the update - just skip resolution
+            return nil
+          end
+        end
+
+        field_cache[field_key]
+      end
+
+      # Clears the field cache (useful for testing or when fields change)
+      def clear_field_cache!
+        @field_cache = {}
+        @fields_loaded = false
       end
 
       # Returns the base URI for the resource based on its API version
