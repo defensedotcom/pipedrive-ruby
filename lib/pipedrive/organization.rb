@@ -5,6 +5,10 @@ module Pipedrive
       'v2'
     end
 
+    def self.field_class
+      OrganizationField
+    end
+
     def persons
       Person.all(nil, { query: { org_id: id } })
     end

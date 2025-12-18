@@ -5,6 +5,10 @@ module Pipedrive
       'v2'
     end
 
+    def self.field_class
+      DealField
+    end
+
     # Lazy-load organization from org_id
     # V1 returned nested object, V2 returns just the ID
     def organization

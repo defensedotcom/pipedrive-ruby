@@ -5,6 +5,10 @@ module Pipedrive
       'v2'
     end
 
+    def self.field_class
+      PersonField
+    end
+
     # Lazy-load organization from org_id
     def organization
       return @organization if defined?(@organization)
