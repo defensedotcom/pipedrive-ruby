@@ -295,13 +295,18 @@ module Pipedrive
         define_method(method) do |path, options = {}|
           self.base_uri(base_uri_for_version)
 
+          token = Pipedrive::Base.api_token
+
           # Apply authentication based on API version
           if api_version == 'v2'
             # v2 uses header authentication
             options[:headers] ||= {}
-            options[:headers]['x-api-token'] = @api_token if @api_token
+            options[:headers]['x-api-token'] = token if token
+          else
+            # v1 uses query parameter authentication
+            options[:query] ||= {}
+            options[:query][:api_token] = token if token
           end
-          # v1 uses query parameter authentication (handled by default_params)
 
           super(path, options)
         end
@@ -313,8 +318,11 @@ module Pipedrive
       # @return [Hash] authentication credentials
       def authenticate(token)
         @api_token = token
-        # v1 resources use query parameter authentication
-        default_params :api_token => token
+      end
+
+      # Get the API token (accessible from subclasses)
+      def api_token
+        @api_token
       end
 
       # A passthrough to allow for the authentication with and access to multiple accounts

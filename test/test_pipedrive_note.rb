@@ -14,7 +14,7 @@ class TestPipedriveNote < Test::Unit::TestCase
         # deal_id
       }
       
-      stub :post, "notes", "create_note_body.json", body
+      stub :post, "notes", "create_note_body.json", body, 'v1'
       
       @note = ::Pipedrive::Note.create(body)
     end

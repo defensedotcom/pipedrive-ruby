@@ -9,7 +9,8 @@ rescue Bundler::BundlerError => e
   exit e.status_code
 end
 
-require "shoulda"
+require 'test-unit'
+require 'shoulda-context'
 # require 'mocha/setup'
 require 'webmock/test_unit'
 
@@ -18,8 +19,8 @@ $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'pipedrive-ruby'
 
 class Test::Unit::TestCase
-  include ShouldaContextLoadable
-  
+  extend Shoulda::Context::DSL
+
   def stub method, resource, body_file_name, request_body=nil, api_version='v2'
     # Determine base path based on API version
     base_path = api_version == 'v2' ? '/api/v2' : '/v1'
