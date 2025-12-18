@@ -108,10 +108,17 @@ API responses are wrapped in OpenStruct objects, merging:
 - Pipedrive deprecated specific v1 endpoints effective December 31, 2025
 - Version 1.0.0 migrates affected resources to API v2
 - See `V2_MIGRATION_NOTES.md` for complete technical details
-- See README.md for user-facing breaking changes
+- See README.md for user-facing documentation
 
-### Breaking Changes from v2 API
-1. **Custom Fields**: Now nested under `custom_fields` hash instead of root level
-2. **Timestamps**: Changed to RFC 3339 format (e.g., `2013-03-01T14:01:03Z`)
-3. **Related Objects**: Removed from v2 responses - require separate API calls
-4. **HTTP Methods**: Updates use PATCH instead of PUT (handled automatically)
+### V1 Compatibility Layer
+The gem includes an abstraction layer that handles V2 API differences transparently:
+
+1. **Custom Fields**: Automatically flattened from `custom_fields` to top-level attributes (handled in `initialize` and `update`)
+2. **Related Objects**: Lazy-loaded via methods like `deal.organization`, `deal.person` (fetches on first access)
+3. **Option Labels**: Automatically resolved to option IDs when updating (e.g., "Yes" → 128)
+4. **HTTP Methods**: PATCH for v2 updates, PUT for v1 (handled in `prepare_update_request`)
+5. **Authentication**: Header-based for v2, query param for v1 (handled automatically)
+6. **Custom Field Nesting**: Fields nested under `custom_fields` key when writing to v2
+
+### Only User-Visible Change
+**Timestamps**: Now use RFC 3339 format (e.g., `2013-03-01T14:01:03Z` instead of `2013-03-01 14:01:03`). Ruby's `Time.parse` handles both formats.

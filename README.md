@@ -64,67 +64,55 @@ These resources continue to use `/v1` endpoints:
 - Field resources (DealField, PersonField, etc.)
 - And others...
 
-### Breaking Changes in 1.0.0
+### V1 Compatibility Layer
 
-#### 1. Custom Fields Structure
+The gem includes an abstraction layer that allows existing code to continue working without changes. The gem transparently handles V2 API differences:
 
-Custom fields are now nested under a `custom_fields` object instead of being at the root level:
+#### Custom Fields (Automatic Flattening)
 
-**v0.x (API v1):**
+V2 API nests custom fields, but the gem flattens them automatically:
+
 ```ruby
-deal.some_custom_field_hash  # Direct access
-deal.some_custom_field_hash_currency  # Subfield as separate attribute
+# Your code stays the same:
+deal.some_custom_field_hash  # Works - gem flattens from custom_fields
+deal['some_custom_field_hash']  # Also works
 ```
 
-**v1.x (API v2):**
+#### Related Objects (Lazy Loading)
+
+V2 API doesn't include related objects, but the gem lazy-loads them:
+
 ```ruby
-deal.custom_fields['some_custom_field_hash']['value']
-deal.custom_fields['some_custom_field_hash']['currency']
+deal = Pipedrive::Deal.find(123)
+deal.organization  # Automatically fetches Organization.find(deal.org_id)
+deal.person        # Automatically fetches Person.find(deal.person_id)
 ```
 
-#### 2. Timestamp Format
+#### Option Labels (Automatic ID Resolution)
 
-All timestamps are now in RFC 3339 format with timezone:
+V2 API requires option IDs instead of labels. The gem converts automatically:
+
+```ruby
+# Your code can still send labels:
+deal.update({ "yes_no_field_hash" => "Yes" })  # Gem converts "Yes" to option ID
+```
+
+#### Handled Automatically
+
+These V2 changes are handled transparently by the gem:
+
+- **Authentication**: Header-based for v2, query param for v1
+- **HTTP Methods**: PATCH for v2 updates, PUT for v1
+- **Custom Field Nesting**: Nested under `custom_fields` when writing to v2
+
+### Timestamp Format Change
+
+The only change you may need to handle is timestamps now use RFC 3339 format:
 
 **v0.x:** `"2013-03-01 14:01:03"`
 **v1.x:** `"2013-03-01T14:01:03Z"`
 
-#### 3. Related Objects Removed
-
-The `related_objects` field is no longer returned in v2 responses. You must make separate API calls to fetch related data:
-
-**v0.x:**
-```ruby
-deal = Pipedrive::Deal.find(123)
-org = deal.organization  # Automatically included
-```
-
-**v1.x:**
-```ruby
-deal = Pipedrive::Deal.find(123)
-org = Pipedrive::Organization.find(deal.org_id)  # Separate call required
-```
-
-#### 4. Authentication Method Changes
-
-API v2 uses header-based authentication instead of query parameters (handled automatically by the gem):
-
-- **v1**: Token sent as query parameter `?api_token=xxx`
-- **v2**: Token sent in header `x-api-token: xxx`
-
-**No code changes required** - the gem automatically uses the correct authentication method based on the resource.
-
-#### 5. HTTP Method Changes
-
-Update operations now use `PATCH` instead of `PUT` for v2 resources (handled automatically by the gem).
-
-### Migration Guide
-
-For most users, upgrading to 1.0.0 should be seamless for basic CRUD operations. However:
-
-1. **If you use custom fields**, update your code to access them via the `custom_fields` hash
-2. **If you rely on related objects**, add explicit fetch calls for related resources
-3. **If you parse timestamps**, ensure your code handles RFC 3339 format (Ruby's `Time.parse` handles this automatically)
+Ruby's `Time.parse` handles both formats automatically.
 
 See [V2_MIGRATION_NOTES.md](V2_MIGRATION_NOTES.md) for complete technical details.
 
