@@ -11,6 +11,7 @@ module Pipedrive
     end
 
     def products
+      # v2 endpoint does not yet exist
       Product.all(get "#{resource_path}/#{id}/products")
     end
 

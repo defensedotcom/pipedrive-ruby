@@ -75,6 +75,9 @@ module Pipedrive
     def update(opts = {})
       # Use PATCH for v2 resources, PUT for v1 resources
       http_method = self.class.api_version == 'v2' ? :patch : :put
+      headers = HEADERS.dup
+      headers.merge!("Content-Type" => "application/json") if http_method == :patch
+      opts = opts.to_json if http_method == :patch
       res = send(http_method, "#{resource_path}/#{id}", :body => opts, headers: headers)
       if res.success?
         res['data'] = Hash[res['data'].map {|k, v| [k.to_sym, v] }]
@@ -151,7 +154,6 @@ module Pipedrive
       #
       # @param [HTTParty::Response] response
       def bad_response(response, params={})
-        puts params.inspect
         if response.class == HTTParty::Response
           raise HTTParty::ResponseError, response
         end

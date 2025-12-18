@@ -27,7 +27,8 @@ module Pipedrive
     end
 
     def deals()
-      Deal.all(get "#{resource_path}/#{id}/deals", :everyone => 1)
+      # Deal.all(get "#{resource_path}/#{id}/deals", :everyone => 1)
+      Deal.all(nil, { query: { person_id: id } })
     end
 
     def merge(opts = {})
