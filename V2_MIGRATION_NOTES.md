@@ -105,38 +105,37 @@
 
 **IMPORTANT**: Only specific endpoints are deprecated. The v1 platform continues for non-migrated resources!
 
-### Sub-Resource Endpoints
-- [ ] `/deals/{id}/products`
-- [ ] `/deals/{id}/participants`
-- [ ] `/deals/{id}/followers`
-- [ ] `/deals/{id}/activities`
-- [ ] `/deals/{id}/files`
-- [ ] `/persons/{id}/deals`
-- [ ] `/organizations/{id}/persons`
-- [ ] `/organizations/{id}/deals`
+### Sub-Resource Endpoints (V2 uses query params instead)
+- [x] `/deals/{id}/products` → `Deal#products` uses `/products?deal_id={id}`
+- [x] `/deals/{id}/participants` → `Deal#participants` uses `/persons?deal_id={id}`
+- [x] `/deals/{id}/activities` → `Deal#activities` uses `/activities?deal_id={id}`
+- [x] `/organizations/{id}/persons` → `Organization#persons` uses `/persons?org_id={id}`
+- [x] `/organizations/{id}/deals` → `Organization#deals` uses `/deals?org_id={id}`
+- [ ] `/deals/{id}/followers` (v1 only)
+- [ ] `/deals/{id}/files` (v1 only)
+- [ ] `/persons/{id}/deals` (not yet updated)
 
-### Breaking Changes Identified
+### V2 API Changes (All Handled by Gem)
 
 1. **Base URL Change**: Must use `/api/v2` prefix (no alternatives)
+   - ✅ **Handled**: `base_uri_for_version` method in Base class
 2. **Authentication Change**: Token passed in `x-api-token` header instead of query parameter
-   - **Code Impact**: Automatic - handled by Base class based on api_version
-   - **User Impact**: None - transparent to gem users
+   - ✅ **Handled**: Automatic - handled by Base class based on api_version
 3. **HTTP Method Change**: PUT → PATCH for all update operations
+   - ✅ **Handled**: `prepare_update_request` method in Base class
 4. **Timestamp Format**: All timestamps now RFC 3339 with timezone
+   - ⚠️ **User-visible**: Only change users may need to handle (Ruby's `Time.parse` works with both)
 5. **Related Objects Removed**: `related_objects` key no longer in responses
-   - **Code Impact**: `initialize_related_objects` method in base.rb (lines 57-70) becomes unused
-   - **User Impact**: Users relying on related objects must make additional API calls
-   - Example: Getting a deal's organization will require: `deal.organization_id` then `Organization.find(id)`
+   - ✅ **Handled**: Lazy-loading methods (`deal.organization`, `deal.person`, etc.) fetch on access
+   - `initialize_related_objects` still used for v1 resources
 6. **Field Selectors Removed**: v1 syntax `/deals:(id,title,value)` no longer supported
-   - **Code Impact**: This gem doesn't implement field selectors, so no code changes needed
-   - **User Impact**: v2 always returns full objects (may increase response sizes)
-   - Cannot optimize bandwidth by selecting specific fields
-7. **Custom Fields Restructured**: **MAJOR BREAKING CHANGE**
-   - **Code Impact**: Custom fields now nested under `custom_fields` key instead of root level
-   - **User Impact**: Code accessing custom fields MUST be updated
-   - **V1**: `deal.d4de1c1518b4531717c676029a45911c340390a6` and `deal.d4de1c1518b4531717c676029a45911c340390a6_currency`
-   - **V2**: `deal.custom_fields['d4de1c1518b4531717c676029a45911c340390a6']['value']` and `deal.custom_fields['d4de1c1518b4531717c676029a45911c340390a6']['currency']`
-   - Subfields no longer separate keys with suffixes - now nested within custom field object
+   - ℹ️ **No impact**: This gem doesn't implement field selectors
+7. **Custom Fields Restructured**:
+   - ✅ **Handled on read**: `flatten_custom_fields` in `initialize()` flattens to V1-style top-level
+   - ✅ **Handled on write**: `nest_custom_fields` in `prepare_update_request` nests for V2 API
+   - Users can continue using `deal.custom_field_hash` or `deal['custom_field_hash']`
+8. **Option IDs Required**: V2 requires option IDs instead of labels for enum fields
+   - ✅ **Handled**: `resolve_option_labels` converts labels (e.g., "Yes") to IDs automatically
 
 ### Test Cases to Update
 - [ ] Update WebMock stubs to use v2 URLs
@@ -145,26 +144,28 @@
 
 ## Migration Strategy Decision
 
-Since only SPECIFIC endpoints are deprecated (not the entire v1 platform), we have two options:
+Since only SPECIFIC endpoints are deprecated (not the entire v1 platform), we implemented:
 
-### Option A: Dual-Version Support (RECOMMENDED)
-- Keep `base_uri` as `https://api.pipedrive.com/v1` by default
-- Override `base_uri` only for resources that MUST migrate to v2
-- Resources that can stay on v1 continue working unchanged
-- **Pros**: No breaking changes for non-deprecated resources, gradual migration
-- **Cons**: More complex implementation, maintaining two versions
+### ✅ Option A: Dual-Version Support with Abstraction Layer
 
-### Option B: Full V2 Migration
-- Change `base_uri` to `https://api.pipedrive.com/api/v2`
-- All resources attempt to use v2
-- Non-deprecated resources (Notes, Files, etc.) will break unless they exist in v2
-- **Pros**: Simpler implementation
-- **Cons**: May break resources that don't have v2 equivalents yet
+**Implemented approach:**
+- Resources override `api_version` class method to declare 'v1' or 'v2'
+- `Base` class dynamically sets `base_uri` based on resource's API version
+- V1-compatible abstraction layer handles all V2 differences transparently
+- Consuming apps (sales, invoice-tracker) require zero code changes
 
-**RECOMMENDATION**: Option A (Dual-Version Support) to avoid breaking non-deprecated resources
+**Key abstraction features:**
+- Custom fields flattened to top-level on read, nested on write
+- Related objects lazy-loaded via accessor methods
+- Option labels automatically resolved to IDs
+- HTTP methods and authentication handled per API version
 
 ## Action Items
-1. ✓ Manually review migration guide
-2. ✓ Document all breaking changes found
-3. ✓ Identify which resources MUST migrate vs can stay on v1
-4. Implement dual-version support for smooth migration
+1. ✅ Manually review migration guide
+2. ✅ Document all breaking changes found
+3. ✅ Identify which resources MUST migrate vs can stay on v1
+4. ✅ Implement dual-version support with abstraction layer
+5. ✅ Test in sales app (console + manual testing)
+6. ✅ Test in invoice-tracker app (console + manual testing)
+7. [ ] Update test fixtures and WebMock stubs for v2 responses
+8. [ ] Consider adding caching for lazy-loaded related objects (performance optimization)
