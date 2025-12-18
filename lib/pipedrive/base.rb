@@ -44,12 +44,17 @@ module Pipedrive
         struct_attrs = attrs
       end
 
+      # Flatten V2 custom_fields to top-level for backwards compatibility
+      if struct_attrs.is_a?(Hash) && struct_attrs['custom_fields']
+        struct_attrs.merge!(flatten_custom_fields(struct_attrs['custom_fields']))
+      end
+
       super(struct_attrs)
     end
 
     # Create related objects from hash
     #
-    # Only used internally
+    # Only used internally (V1 API only - V2 does not return related_objects)
     #
     # @param [Hash] related_object_hash
     # @return [Hash]
@@ -66,6 +71,43 @@ module Pipedrive
       end
 
       related_objects
+    end
+
+    # Flatten V2 custom_fields structure to V1-style top-level attributes
+    #
+    # V2 returns: { "custom_fields": { "hash_key": { "value": X, "currency": "EUR" } } }
+    # V1 returned: { "hash_key": X, "hash_key_currency": "EUR" }
+    #
+    # This method converts V2 format back to V1 format for backwards compatibility
+    #
+    # @param [Hash] custom_fields_hash
+    # @return [Hash] flattened custom fields
+    def flatten_custom_fields(custom_fields_hash)
+      return {} unless custom_fields_hash.is_a?(Hash)
+
+      flattened = {}
+      custom_fields_hash.each do |field_key, field_data|
+        if field_data.is_a?(Hash)
+          # Extract the primary value
+          if field_data.key?('value')
+            flattened[field_key] = field_data['value']
+          elsif field_data.key?(:value)
+            flattened[field_key] = field_data[:value]
+          end
+
+          # Extract subfields (currency, etc.) with suffix pattern
+          field_data.each do |subfield_key, subfield_value|
+            subfield_key_s = subfield_key.to_s
+            next if subfield_key_s == 'value'
+            flattened["#{field_key}_#{subfield_key_s}"] = subfield_value
+          end
+        else
+          # Simple value, just copy it
+          flattened[field_key] = field_data
+        end
+      end
+
+      flattened
     end
 
     # Updates the object.

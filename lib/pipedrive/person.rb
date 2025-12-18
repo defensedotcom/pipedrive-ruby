@@ -5,6 +5,18 @@ module Pipedrive
       'v2'
     end
 
+    # Lazy-load organization from org_id
+    def organization
+      return @organization if defined?(@organization)
+      return nil unless org_id
+
+      @organization = if org_id.is_a?(Hash)
+        Organization.new(org_id)
+      else
+        Organization.find(org_id)
+      end
+    end
+
     class << self
 
       def find_or_create_by_name(name, opts={})
