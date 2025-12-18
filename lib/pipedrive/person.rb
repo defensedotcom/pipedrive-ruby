@@ -38,8 +38,7 @@ module Pipedrive
 
     end
 
-    def deals()
-      # Deal.all(get "#{resource_path}/#{id}/deals", :everyone => 1)
+    def deals
       Deal.all(nil, { query: { person_id: id } })
     end
 

@@ -6,12 +6,10 @@ module Pipedrive
     end
 
     def persons
-      # Person.all(get "#{resource_path}/#{id}/persons")
       Person.all(nil, { query: { org_id: id } })
     end
 
     def deals
-      # Deal.all(get "#{resource_path}/#{id}/deals")
       Deal.all(nil, { query: { org_id: id } })
     end
 
