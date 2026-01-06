@@ -12,8 +12,6 @@ module Pipedrive
   #   deal.user_id["name"]     # => "John" (lazy-loads User and returns name)
   #
   class LazyRelatedObject
-    include Comparable
-
     def initialize(id, resource_class)
       @id = id
       @resource_class = resource_class
@@ -39,7 +37,7 @@ module Pipedrive
       end
     end
 
-    # Act like an integer
+    # Explicit integer conversion
     def to_i
       @id.to_i
     end
@@ -48,27 +46,19 @@ module Pipedrive
       @id.to_s
     end
 
-    # Comparison - enables Comparable mixin for <, >, <=, >=
-    def <=>(other)
-      to_i <=> other.to_i
-    end
-
-    # Support equality checks
+    # Custom equality - supports Hash comparison for V1 compatibility
     def ==(other)
       case other
-      when Integer
-        to_i == other
-      when LazyRelatedObject
+      when Integer, LazyRelatedObject
         to_i == other.to_i
       when Hash
-        # V1 returned hashes, so compare IDs
         to_i == other['id'] || to_i == other[:id]
       else
         false
       end
     end
 
-    # For use as hash keys
+    # For use as hash keys (must match custom ==)
     def eql?(other)
       self == other
     end
@@ -77,32 +67,17 @@ module Pipedrive
       @id.hash
     end
 
-    # Coercion for arithmetic when on right side (e.g., 5 + lazy_obj)
+    # Coercion for right-side arithmetic (e.g., 5 + lazy_obj)
     def coerce(other)
       [other, to_i]
-    end
-
-    # For nil checks
-    def nil?
-      @id.nil?
-    end
-
-    # JSON serialization - return just the ID
-    def as_json(*)
-      @id
-    end
-
-    def to_json(*)
-      @id.to_json
     end
 
     def inspect
       "#<Pipedrive::LazyRelatedObject id=#{@id} resource=#{@resource_class.name}>"
     end
 
-    # Forward unknown methods to Integer (for arithmetic) or loaded object
+    # Delegate unknown methods to @id (Integer) or loaded object
     def method_missing(method, *args, &block)
-      # Try integer methods first (for arithmetic like lazy_obj + 5)
       if @id.respond_to?(method)
         @id.send(method, *args, &block)
       elsif (obj = loaded_object)&.respond_to?(method)
