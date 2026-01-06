@@ -10,9 +10,10 @@ module Pipedrive
   #   deal.user_id.to_i        # => 12345 (acts as integer)
   #   deal.user_id == 12345    # => true
   #   deal.user_id["name"]     # => "John" (lazy-loads User and returns name)
-  #   deal.user_id["email"]    # => "john@example.com"
   #
   class LazyRelatedObject
+    include Comparable
+
     def initialize(id, resource_class)
       @id = id
       @resource_class = resource_class
@@ -47,7 +48,12 @@ module Pipedrive
       @id.to_s
     end
 
-    # Support numeric comparisons
+    # Comparison - enables Comparable mixin for <, >, <=, >=
+    def <=>(other)
+      to_i <=> other.to_i
+    end
+
+    # Support equality checks
     def ==(other)
       case other
       when Integer
@@ -62,6 +68,7 @@ module Pipedrive
       end
     end
 
+    # For use as hash keys
     def eql?(other)
       self == other
     end
@@ -70,58 +77,13 @@ module Pipedrive
       @id.hash
     end
 
-    # Coercion for arithmetic operations
+    # Coercion for arithmetic when on right side (e.g., 5 + lazy_obj)
     def coerce(other)
       [other, to_i]
     end
 
-    # Respond to common integer methods
-    def +(other)
-      to_i + other
-    end
-
-    def -(other)
-      to_i - other
-    end
-
-    def *(other)
-      to_i * other
-    end
-
-    def /(other)
-      to_i / other
-    end
-
-    def <(other)
-      to_i < other
-    end
-
-    def >(other)
-      to_i > other
-    end
-
-    def <=(other)
-      to_i <= other
-    end
-
-    def >=(other)
-      to_i >= other
-    end
-
-    def <=>(other)
-      to_i <=> other.to_i
-    end
-
-    # For nil checks - we're not nil if we have an ID
+    # For nil checks
     def nil?
-      @id.nil?
-    end
-
-    def present?
-      !@id.nil?
-    end
-
-    def blank?
       @id.nil?
     end
 
@@ -134,20 +96,16 @@ module Pipedrive
       @id.to_json
     end
 
-    # For interpolation in strings
-    def to_str
-      @id.to_s
-    end
-
-    # Inspection for debugging
     def inspect
       "#<Pipedrive::LazyRelatedObject id=#{@id} resource=#{@resource_class.name}>"
     end
 
-    # Allow method calls to be forwarded to the loaded object
+    # Forward unknown methods to Integer (for arithmetic) or loaded object
     def method_missing(method, *args, &block)
-      obj = loaded_object
-      if obj&.respond_to?(method)
+      # Try integer methods first (for arithmetic like lazy_obj + 5)
+      if @id.respond_to?(method)
+        @id.send(method, *args, &block)
+      elsif (obj = loaded_object)&.respond_to?(method)
         obj.send(method, *args, &block)
       else
         super
@@ -155,7 +113,9 @@ module Pipedrive
     end
 
     def respond_to_missing?(method, include_private = false)
-      loaded_object&.respond_to?(method, include_private) || super
+      @id.respond_to?(method, include_private) ||
+        loaded_object&.respond_to?(method, include_private) ||
+        super
     end
 
     private
@@ -165,8 +125,7 @@ module Pipedrive
       return nil if @id.nil?
 
       @loaded_object = @resource_class.find(@id)
-    rescue => e
-      # If we can't load the object, return nil rather than crashing
+    rescue
       nil
     end
   end
