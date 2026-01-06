@@ -337,6 +337,14 @@ module Pipedrive
         end
       end
 
+      # Override HTTParty's base_uri to return version-specific URI when called without args
+      # This ensures calling base_uri on any resource returns the correct URL for external use
+      #
+      # @return [String] Base URI
+      def base_uri(uri = nil)
+        uri.nil? ? base_uri_for_version : super
+      end
+
       # Override HTTParty methods to use dynamic base_uri and authentication
       [:get, :post, :put, :patch, :delete].each do |method|
         define_method(method) do |path, options = {}|
