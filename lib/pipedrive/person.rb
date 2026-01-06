@@ -23,6 +23,51 @@ module Pipedrive
 
     class << self
 
+      # Transform create options for V2 API
+      # Converts phone → phones and email → emails with proper array-of-objects format
+      #
+      # @param [Hash] opts - the create parameters
+      # @return [Hash] - transformed parameters
+      def transform_create_opts(opts)
+        transform_update_opts(opts)
+      end
+
+      # Transform update options for V2 API
+      # Converts phone → phones and email → emails, handling both simple values and arrays
+      #
+      # @param [Hash] opts - the update parameters
+      # @return [Hash] - transformed parameters
+      def transform_update_opts(opts)
+        transformed = opts.dup
+
+        # Convert phone to phones array format
+        if transformed.key?(:phone) || transformed.key?('phone')
+          phone_value = transformed.delete(:phone) || transformed.delete('phone')
+          transformed['phones'] = convert_to_contact_array(phone_value, 'work') if phone_value
+        end
+
+        # Convert email to emails array format
+        if transformed.key?(:email) || transformed.key?('email')
+          email_value = transformed.delete(:email) || transformed.delete('email')
+          transformed['emails'] = convert_to_contact_array(email_value, 'work') if email_value
+        end
+
+        transformed
+      end
+
+      # Convert a value (string or array) to V2 contact array format
+      # V2 format: [{ "value": "...", "primary": true/false, "label": "..." }]
+      #
+      # @param [String, Array] value - the contact value(s)
+      # @param [String] label - the label for the contact (e.g., 'work', 'home')
+      # @return [Array<Hash>] - array of contact objects
+      def convert_to_contact_array(value, label)
+        values = value.is_a?(Array) ? value : [value]
+        values.map.with_index do |v, i|
+          { 'value' => v.to_s, 'primary' => i == 0, 'label' => label }
+        end
+      end
+
       def find_or_create_by_name(name, opts={})
         find_by_name(name, :org_id => opts[:org_id]).first || create(opts.merge(:name => name))
       end
@@ -40,6 +85,11 @@ module Pipedrive
         find(person_id)
       end
 
+    end
+
+    # Override update to transform phone/email fields for V2 API
+    def update(opts = {})
+      super(self.class.transform_update_opts(opts))
     end
 
     def deals

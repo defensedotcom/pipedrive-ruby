@@ -150,46 +150,12 @@ module Pipedrive
         # Resolve option labels to IDs for V2 API
         resolved_opts = resolve_option_labels(opts)
         # Nest custom fields under 'custom_fields' key for V2 API
-        nested_opts = nest_custom_fields(resolved_opts)
+        nested_opts = self.class.nest_custom_fields(resolved_opts)
         headers = HEADERS.merge("Content-Type" => "application/json")
         [:patch, { body: nested_opts.to_json, headers: headers }]
       else
         [:put, { body: opts, headers: HEADERS }]
       end
-    end
-
-    # Nests custom field keys under 'custom_fields' for V2 API
-    # Custom field keys are 40-character hexadecimal hashes
-    #
-    # @param [Hash] opts - the update parameters
-    # @return [Hash] - parameters with custom fields nested
-    def nest_custom_fields(opts)
-      standard_fields = {}
-      custom_fields = {}
-
-      opts.each do |key, value|
-        key_s = key.to_s
-        if custom_field_key?(key_s)
-          custom_fields[key_s] = value
-        else
-          standard_fields[key_s] = value
-        end
-      end
-
-      if custom_fields.any?
-        standard_fields['custom_fields'] = custom_fields
-      end
-
-      standard_fields
-    end
-
-    # Checks if a key looks like a Pipedrive custom field key
-    # Custom field keys are 40-character hexadecimal strings
-    #
-    # @param [String] key - the field key to check
-    # @return [Boolean] - true if it looks like a custom field key
-    def custom_field_key?(key)
-      key.is_a?(String) && key.match?(/\A[a-f0-9]{40}\z/)
     end
 
     # Resolves option labels (e.g., "Yes", "No") to their corresponding option IDs
@@ -279,6 +245,87 @@ module Pipedrive
         @fields_loaded = false
       end
 
+      # Nests custom field keys under 'custom_fields' for V2 API
+      # Custom field keys are 40-character hexadecimal hashes
+      #
+      # @param [Hash] opts - the parameters
+      # @return [Hash] - parameters with custom fields nested
+      def nest_custom_fields(opts)
+        standard_fields = {}
+        custom_fields = {}
+
+        opts.each do |key, value|
+          key_s = key.to_s
+          if custom_field_key?(key_s)
+            custom_fields[key_s] = value
+          else
+            standard_fields[key_s] = value
+          end
+        end
+
+        if custom_fields.any?
+          standard_fields['custom_fields'] = custom_fields
+        end
+
+        standard_fields
+      end
+
+      # Checks if a key looks like a Pipedrive custom field key
+      # Custom field keys are 40-character hexadecimal strings
+      #
+      # @param [String] key - the field key to check
+      # @return [Boolean] - true if it looks like a custom field key
+      def custom_field_key?(key)
+        key.is_a?(String) && key.match?(/\A[a-f0-9]{40}\z/)
+      end
+
+      # Override in subclasses to transform options before create
+      # Used by Person to convert phone/email fields for V2 API
+      #
+      # @param [Hash] opts - the create parameters
+      # @return [Hash] - transformed parameters
+      def transform_create_opts(opts)
+        opts
+      end
+
+      # Resolves option labels (e.g., "Yes", "No") to their corresponding option IDs
+      # V2 API requires option IDs, not labels
+      # Class-level version for use in create
+      #
+      # @param [Hash] opts - the parameters
+      # @return [Hash] - parameters with option labels replaced by IDs
+      def resolve_option_labels(opts)
+        return opts unless field_class
+
+        resolved = {}
+        opts.each do |key, value|
+          resolved[key] = resolve_single_option(key.to_s, value)
+        end
+        resolved
+      end
+
+      # Resolves a single option value if it's a string matching an option label
+      # Class-level version for use in create
+      #
+      # @param [String] field_key - the custom field key
+      # @param [Object] value - the value to potentially resolve
+      # @return [Object] - the option ID if matched, otherwise original value
+      def resolve_single_option(field_key, value)
+        # Only process string values that could be option labels
+        return value unless value.is_a?(String)
+
+        # Only look up custom fields (40-char hex keys), not standard fields
+        return value unless custom_field_key?(field_key)
+
+        # Look up field definition
+        field = find_field_by_key(field_class, field_key)
+        return value unless field&.options.is_a?(Array)
+
+        # Find matching option by label
+        option = field.options.find { |opt| opt['label'] == value }
+        option ? option['id'] : value
+      end
+
       # Returns the base URI for the resource based on its API version
       #
       # @return [String] Base URI
@@ -362,12 +409,33 @@ module Pipedrive
       end
 
       def create( opts = {} )
-        res = post resource_path, :body => opts
+        request_opts = prepare_create_request(opts)
+        res = post resource_path, request_opts
         if res.success?
           res['data'] = opts.merge res['data']
           new(res)
         else
           bad_response(res,opts)
+        end
+      end
+
+      # Prepares create request based on API version
+      # V2 uses JSON body with nested custom fields, V1 uses form-encoded body
+      #
+      # @param [Hash] opts - the create parameters
+      # @return [Hash] - request options for HTTParty
+      def prepare_create_request(opts)
+        if api_version == 'v2'
+          # Transform opts for v2 API (subclasses can override transform_create_opts)
+          transformed_opts = transform_create_opts(opts)
+          # Resolve option labels to IDs for V2 API
+          resolved_opts = resolve_option_labels(transformed_opts)
+          # Nest custom fields under 'custom_fields' key for V2 API
+          nested_opts = nest_custom_fields(resolved_opts)
+          headers = HEADERS.merge("Content-Type" => "application/json")
+          { body: nested_opts.to_json, headers: headers }
+        else
+          { body: opts, headers: HEADERS }
         end
       end
 
