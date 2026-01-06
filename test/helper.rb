@@ -35,12 +35,14 @@ class Test::Unit::TestCase
           uri += "?" + request_body.map{|k,v| "#{k}=#{v}"}.join('&')
         end
         request_stubbed = stub_request(:get, uri)
+        request_stubbed.with(headers: request_headers_v2)
       else
         # Use PATCH for v2 update operations
         actual_method = (method == :put) ? :patch : method
         request_stubbed = stub_request(actual_method, "https://api.pipedrive.com#{base_path}/#{resource}")
+        # POST/PATCH in v2 use JSON content type
+        request_stubbed.with(headers: request_headers_v2_json)
       end
-      request_stubbed.with(headers: request_headers_v2)
     else
       # v1: api_token in query string
       if method == :get
@@ -75,6 +77,15 @@ class Test::Unit::TestCase
     {
       'Accept'=>'application/json',
       'Content-Type'=>'application/x-www-form-urlencoded',
+      'User-Agent'=>'Ruby.Pipedrive.Api',
+      'x-api-token'=>'some-token'
+    }
+  end
+
+  def request_headers_v2_json
+    {
+      'Accept'=>'application/json',
+      'Content-Type'=>'application/json',
       'User-Agent'=>'Ruby.Pipedrive.Api',
       'x-api-token'=>'some-token'
     }
