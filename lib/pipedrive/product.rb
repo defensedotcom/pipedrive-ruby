@@ -17,19 +17,7 @@ module Pipedrive
       wrap_related_id_field(:owner_id, User)
     end
 
-    # Lazy-load owner from owner_id
-    def owner
-      return @owner if defined?(@owner)
-      return nil unless owner_id
-
-      @owner = case owner_id
-      when Hash
-        User.new(owner_id)
-      when LazyRelatedObject
-        User.find(owner_id.to_i)
-      else
-        User.find(owner_id)
-      end
-    end
+    # Lazy-load related resources
+    lazy_load_relation :owner, :owner_id, 'User'
   end
 end
