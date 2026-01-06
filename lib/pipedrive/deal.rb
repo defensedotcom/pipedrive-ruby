@@ -29,19 +29,20 @@ module Pipedrive
     def initialize(attrs = {})
       super(attrs)
 
-      # Alias owner_id → user_id for backwards compatibility
-      if respond_to?(:owner_id) && !respond_to?(:user_id)
-        @table[:user_id] = owner_id
-      end
-
       # Wrap ID fields with LazyRelatedObject for V1-style hash access
       # V1 returned: {"org_id": {"id": 123, "name": "Acme", "value": 123}}
       # V2 returns: {"org_id": 123}
       # Wrapper allows: deal.org_id["name"] to still work
+      # NOTE: owner_id must be wrapped BEFORE aliasing to user_id
+      wrap_related_id_field(:owner_id, User)
       wrap_related_id_field(:org_id, Organization)
       wrap_related_id_field(:person_id, Person)
-      wrap_related_id_field(:user_id, User)
       wrap_related_id_field(:creator_user_id, User)
+
+      # Alias owner_id → user_id for backwards compatibility (after wrapping)
+      if respond_to?(:owner_id) && !respond_to?(:user_id)
+        @table[:user_id] = owner_id
+      end
     end
 
     # Override update to transform user_id → owner_id for V2 API
