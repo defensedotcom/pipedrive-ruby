@@ -50,54 +50,10 @@ module Pipedrive
       super(self.class.transform_create_opts(opts))
     end
 
-    # Lazy-load organization from org_id
-    # V1 returned nested object, V2 returns just the ID (wrapped in LazyRelatedObject)
-    def organization
-      return @organization if defined?(@organization)
-      return nil unless org_id
-
-      @organization = case org_id
-      when Hash
-        # V1 style - already have the data
-        Organization.new(org_id)
-      when LazyRelatedObject
-        # V2 style with wrapper - fetch via the wrapper
-        Organization.find(org_id.to_i)
-      else
-        # V2 style plain ID - fetch directly
-        Organization.find(org_id)
-      end
-    end
-
-    # Lazy-load person from person_id
-    def person
-      return @person if defined?(@person)
-      return nil unless person_id
-
-      @person = case person_id
-      when Hash
-        Person.new(person_id)
-      when LazyRelatedObject
-        Person.find(person_id.to_i)
-      else
-        Person.find(person_id)
-      end
-    end
-
-    # Lazy-load user/owner from user_id
-    def user
-      return @user if defined?(@user)
-      return nil unless user_id
-
-      @user = case user_id
-      when Hash
-        User.new(user_id)
-      when LazyRelatedObject
-        User.find(user_id.to_i)
-      else
-        User.find(user_id)
-      end
-    end
+    # Lazy-load related resources
+    lazy_load_relation :organization, :org_id, 'Organization'
+    lazy_load_relation :person, :person_id, 'Person'
+    lazy_load_relation :user, :user_id, 'User'
 
     def add_product(opts = {})
       res = post "#{resource_path}/#{id}/products", :body => opts

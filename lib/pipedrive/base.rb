@@ -235,6 +235,36 @@ module Pipedrive
     end
 
     class << self
+      # Defines a lazy-loading accessor method for a related resource
+      # Handles V1 (Hash) and V2 (Integer/LazyRelatedObject) formats
+      #
+      # @param [Symbol] method_name - the accessor method name (e.g., :organization)
+      # @param [Symbol] id_field - the ID field name (e.g., :org_id)
+      # @param [Class, String] resource_class - the class to instantiate (e.g., Organization or 'Organization')
+      def lazy_load_relation(method_name, id_field, resource_class)
+        define_method(method_name) do
+          ivar = "@#{method_name}"
+          return instance_variable_get(ivar) if instance_variable_defined?(ivar)
+
+          id_value = send(id_field) rescue nil
+          return nil unless id_value
+
+          # Resolve class name string to actual class (handles load order issues)
+          klass = resource_class.is_a?(String) ? Pipedrive.const_get(resource_class) : resource_class
+
+          result = case id_value
+          when Hash
+            klass.new(id_value)
+          when LazyRelatedObject
+            klass.find(id_value.to_i)
+          else
+            klass.find(id_value)
+          end
+
+          instance_variable_set(ivar, result)
+        end
+      end
+
       # Returns the API version to use for this resource
       # Override in subclasses to specify v2
       #
