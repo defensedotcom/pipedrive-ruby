@@ -32,6 +32,12 @@ module Pipedrive
       end
     end
 
+    # V1 compatibility: owner_name was included in nested org objects
+    # V2 removed it, so we fetch from the owner sub-resource
+    def owner_name
+      owner&.name
+    end
+
     def persons
       Person.all(nil, { query: { org_id: id } })
     end
