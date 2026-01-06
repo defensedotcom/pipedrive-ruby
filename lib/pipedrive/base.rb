@@ -158,37 +158,63 @@ module Pipedrive
       end
     end
 
-    # Resolves option labels (e.g., "Yes", "No") to their corresponding option IDs
-    # V2 API requires option IDs, not labels
+    # Formats custom field values for V2 API requirements
+    # - Resolves option labels to IDs
+    # - Wraps multi-option field values in arrays
+    # - Filters out empty text field values
     #
     # @param [Hash] opts - the update parameters
-    # @return [Hash] - parameters with option labels replaced by IDs
+    # @return [Hash] - parameters with custom fields formatted for V2
     def resolve_option_labels(opts)
       field_class = self.class.field_class
       return opts unless field_class
 
       resolved = {}
       opts.each do |key, value|
-        resolved[key] = resolve_single_option(field_class, key.to_s, value)
+        formatted_value = format_custom_field_value(key.to_s, value)
+        # Skip nil values (empty text fields filtered out)
+        resolved[key] = formatted_value unless formatted_value.nil?
       end
       resolved
     end
 
-    # Resolves a single option value if it's a string matching an option label
+    # Formats a single custom field value based on its field type
     #
-    # @param [Class] field_class - the field class (e.g., DealField)
     # @param [String] field_key - the custom field key
-    # @param [Object] value - the value to potentially resolve
-    # @return [Object] - the option ID if matched, otherwise original value
-    def resolve_single_option(field_class, field_key, value)
-      # Only process string values that could be option labels
-      return value unless value.is_a?(String)
+    # @param [Object] value - the value to format
+    # @return [Object, nil] - formatted value, or nil to filter out
+    def format_custom_field_value(field_key, value)
+      # Only look up custom fields (40-char hex keys), not standard fields
+      return value unless self.class.custom_field_key?(field_key)
+
+      # Filter out nil and empty string values (V2 rejects empty text fields)
+      return nil if value.nil? || (value.is_a?(String) && value.empty?)
 
       # Look up field definition
+      field_class = self.class.field_class
       field = self.class.find_field_by_key(field_class, field_key)
-      return value unless field&.options.is_a?(Array)
+      return value unless field
 
-      # Find matching option by label
+      # Handle based on field type
+      case field.field_type
+      when 'set' # multi-option field - V2 requires array
+        values = value.is_a?(Array) ? value : [value]
+        values.map { |v| resolve_option_value(field, v) }
+      when 'enum' # single-option field
+        resolve_option_value(field, value)
+      else
+        value
+      end
+    end
+
+    # Resolves a single option value if it's a string matching an option label
+    #
+    # @param [Object] field - the field definition
+    # @param [Object] value - the value to potentially resolve
+    # @return [Object] - the option ID if matched, otherwise original value
+    def resolve_option_value(field, value)
+      return value unless value.is_a?(String) && field.options.is_a?(Array)
+
       option = field.options.find { |opt| opt['label'] == value }
       option ? option['id'] : value
     end
@@ -288,40 +314,63 @@ module Pipedrive
         opts
       end
 
-      # Resolves option labels (e.g., "Yes", "No") to their corresponding option IDs
-      # V2 API requires option IDs, not labels
+      # Formats custom field values for V2 API requirements
+      # - Resolves option labels to IDs
+      # - Wraps multi-option field values in arrays
+      # - Filters out empty text field values
       # Class-level version for use in create
       #
       # @param [Hash] opts - the parameters
-      # @return [Hash] - parameters with option labels replaced by IDs
+      # @return [Hash] - parameters with custom fields formatted for V2
       def resolve_option_labels(opts)
         return opts unless field_class
 
         resolved = {}
         opts.each do |key, value|
-          resolved[key] = resolve_single_option(key.to_s, value)
+          formatted_value = format_custom_field_value(key.to_s, value)
+          # Skip nil values (empty text fields filtered out)
+          resolved[key] = formatted_value unless formatted_value.nil?
         end
         resolved
       end
 
-      # Resolves a single option value if it's a string matching an option label
+      # Formats a single custom field value based on its field type
       # Class-level version for use in create
       #
       # @param [String] field_key - the custom field key
-      # @param [Object] value - the value to potentially resolve
-      # @return [Object] - the option ID if matched, otherwise original value
-      def resolve_single_option(field_key, value)
-        # Only process string values that could be option labels
-        return value unless value.is_a?(String)
-
+      # @param [Object] value - the value to format
+      # @return [Object, nil] - formatted value, or nil to filter out
+      def format_custom_field_value(field_key, value)
         # Only look up custom fields (40-char hex keys), not standard fields
         return value unless custom_field_key?(field_key)
 
+        # Filter out nil and empty string values (V2 rejects empty text fields)
+        return nil if value.nil? || (value.is_a?(String) && value.empty?)
+
         # Look up field definition
         field = find_field_by_key(field_class, field_key)
-        return value unless field&.options.is_a?(Array)
+        return value unless field
 
-        # Find matching option by label
+        # Handle based on field type
+        case field.field_type
+        when 'set' # multi-option field - V2 requires array
+          values = value.is_a?(Array) ? value : [value]
+          values.map { |v| resolve_option_value(field, v) }
+        when 'enum' # single-option field
+          resolve_option_value(field, value)
+        else
+          value
+        end
+      end
+
+      # Resolves a single option value if it's a string matching an option label
+      #
+      # @param [Object] field - the field definition
+      # @param [Object] value - the value to potentially resolve
+      # @return [Object] - the option ID if matched, otherwise original value
+      def resolve_option_value(field, value)
+        return value unless value.is_a?(String) && field.options.is_a?(Array)
+
         option = field.options.find { |opt| opt['label'] == value }
         option ? option['id'] : value
       end
