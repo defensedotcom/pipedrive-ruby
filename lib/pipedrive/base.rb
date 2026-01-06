@@ -412,7 +412,10 @@ module Pipedrive
         request_opts = prepare_create_request(opts)
         res = post resource_path, request_opts
         if res.success?
-          res['data'] = opts.merge res['data']
+          # For V2, don't merge original opts as they may have different field names
+          # (e.g., 'email' vs 'emails'). V2 API returns complete data.
+          # For V1, merge opts to ensure passed data is available if API doesn't return it.
+          res['data'] = opts.merge(res['data']) unless api_version == 'v2'
           new(res)
         else
           bad_response(res,opts)
