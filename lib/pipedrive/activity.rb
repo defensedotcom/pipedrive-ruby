@@ -12,11 +12,16 @@ module Pipedrive
       super(attrs)
 
       # Wrap ID fields for V1-style hash access
+      # NOTE: owner_id must be wrapped BEFORE aliasing to user_id
+      wrap_related_id_field(:owner_id, User)
       wrap_related_id_field(:org_id, Organization)
       wrap_related_id_field(:person_id, Person)
-      wrap_related_id_field(:user_id, User)
       wrap_related_id_field(:deal_id, Deal)
-      wrap_related_id_field(:owner_id, User)
+
+      # Alias owner_id → user_id for backwards compatibility (V2 renamed this field)
+      if respond_to?(:owner_id) && !respond_to?(:user_id)
+        @table[:user_id] = owner_id
+      end
     end
 
     # Gets the date of the activity
