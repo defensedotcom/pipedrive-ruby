@@ -9,6 +9,36 @@ module Pipedrive
       DealField
     end
 
+    # Transform create options for V2 API
+    # Converts user_id → owner_id
+    def self.transform_create_opts(opts)
+      transformed = opts.dup
+
+      # Convert user_id to owner_id for V2 API
+      if transformed.key?(:user_id) || transformed.key?('user_id')
+        user_id_value = transformed.delete(:user_id) || transformed.delete('user_id')
+        transformed['owner_id'] = user_id_value if user_id_value
+      end
+
+      transformed
+    end
+
+    # Override initialize to alias V2 field names for backwards compatibility
+    # V2 API returns 'owner_id', but V1 used 'user_id'
+    def initialize(attrs = {})
+      super(attrs)
+
+      # Alias owner_id → user_id for backwards compatibility
+      if respond_to?(:owner_id) && !respond_to?(:user_id)
+        @table[:user_id] = owner_id
+      end
+    end
+
+    # Override update to transform user_id → owner_id for V2 API
+    def update(opts = {})
+      super(self.class.transform_create_opts(opts))
+    end
+
     # Lazy-load organization from org_id
     # V1 returned nested object, V2 returns just the ID
     def organization
