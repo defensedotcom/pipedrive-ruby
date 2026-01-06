@@ -11,6 +11,7 @@ module Pipedrive
 
     # Override initialize to alias V2 field names for backwards compatibility
     # V2 API returns 'phones' and 'emails', but V1 used 'phone' and 'email'
+    # V2 returns IDs instead of nested objects for related fields
     def initialize(attrs = {})
       super(attrs)
 
@@ -23,6 +24,10 @@ module Pipedrive
       if respond_to?(:emails) && !respond_to?(:email)
         @table[:email] = emails
       end
+
+      # Wrap ID fields for V1-style hash access
+      wrap_related_id_field(:org_id, Organization)
+      wrap_related_id_field(:owner_id, User)
     end
 
     # Lazy-load organization from org_id
@@ -30,10 +35,28 @@ module Pipedrive
       return @organization if defined?(@organization)
       return nil unless org_id
 
-      @organization = if org_id.is_a?(Hash)
+      @organization = case org_id
+      when Hash
         Organization.new(org_id)
+      when LazyRelatedObject
+        Organization.find(org_id.to_i)
       else
         Organization.find(org_id)
+      end
+    end
+
+    # Lazy-load owner from owner_id
+    def owner
+      return @owner if defined?(@owner)
+      return nil unless owner_id
+
+      @owner = case owner_id
+      when Hash
+        User.new(owner_id)
+      when LazyRelatedObject
+        User.find(owner_id.to_i)
+      else
+        User.find(owner_id)
       end
     end
 
