@@ -137,6 +137,24 @@
 8. **Option IDs Required**: V2 requires option IDs instead of labels for enum fields
    - ✅ **Handled**: `resolve_option_labels` converts labels (e.g., "Yes") to IDs automatically
 
+### Deal-Specific V2 Changes
+Source: https://pipedrive.readme.io/docs/pipedrive-api-v2-migration-guide#post-apiv1deals-to-post-apiv2deals
+
+1. **`user_id` → `owner_id`**: Field renamed for clarity and consistency
+   - ✅ **Handled on write**: `transform_create_opts` converts `user_id` to `owner_id`
+   - ✅ **Handled on read**: `initialize` aliases `owner_id` → `user_id` for backwards compatibility
+2. **Related IDs no longer objects**: `creator_user_id`, `user_id`, `person_id`, `org_id` return IDs not objects
+   - ✅ **Handled**: Lazy-loading methods (`deal.organization`, `deal.person`, `deal.user`) fetch on access
+
+### Person-Specific V2 Changes
+
+1. **`phone` → `phones`**: Field renamed and restructured to array of objects
+   - ✅ **Handled on write**: `transform_create_opts` converts to `[{ "value": "...", "primary": true, "label": "work" }]`
+   - ✅ **Handled on read**: `initialize` aliases `phones` → `phone` for backwards compatibility
+2. **`email` → `emails`**: Field renamed and restructured to array of objects
+   - ✅ **Handled on write**: `transform_create_opts` converts to `[{ "value": "...", "primary": true, "label": "work" }]`
+   - ✅ **Handled on read**: `initialize` aliases `emails` → `email` for backwards compatibility
+
 ### Test Cases to Update
 - [ ] Update WebMock stubs to use v2 URLs
 - [ ] Update test fixtures with v2 response formats
