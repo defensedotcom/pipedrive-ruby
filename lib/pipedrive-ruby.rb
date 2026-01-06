@@ -1,4 +1,5 @@
 require 'pipedrive/base'
+require 'pipedrive/lazy_related_object'
 require 'pipedrive/activity'
 require 'pipedrive/activity-type'
 require 'pipedrive/authorization'

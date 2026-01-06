@@ -25,6 +25,7 @@ module Pipedrive
 
     # Override initialize to alias V2 field names for backwards compatibility
     # V2 API returns 'owner_id', but V1 used 'user_id'
+    # V2 returns IDs instead of nested objects, wrap with LazyRelatedObject
     def initialize(attrs = {})
       super(attrs)
 
@@ -32,6 +33,15 @@ module Pipedrive
       if respond_to?(:owner_id) && !respond_to?(:user_id)
         @table[:user_id] = owner_id
       end
+
+      # Wrap ID fields with LazyRelatedObject for V1-style hash access
+      # V1 returned: {"org_id": {"id": 123, "name": "Acme", "value": 123}}
+      # V2 returns: {"org_id": 123}
+      # Wrapper allows: deal.org_id["name"] to still work
+      wrap_related_id_field(:org_id, Organization)
+      wrap_related_id_field(:person_id, Person)
+      wrap_related_id_field(:user_id, User)
+      wrap_related_id_field(:creator_user_id, User)
     end
 
     # Override update to transform user_id → owner_id for V2 API
@@ -40,16 +50,20 @@ module Pipedrive
     end
 
     # Lazy-load organization from org_id
-    # V1 returned nested object, V2 returns just the ID
+    # V1 returned nested object, V2 returns just the ID (wrapped in LazyRelatedObject)
     def organization
       return @organization if defined?(@organization)
       return nil unless org_id
 
-      @organization = if org_id.is_a?(Hash)
+      @organization = case org_id
+      when Hash
         # V1 style - already have the data
         Organization.new(org_id)
+      when LazyRelatedObject
+        # V2 style with wrapper - fetch via the wrapper
+        Organization.find(org_id.to_i)
       else
-        # V2 style - need to fetch
+        # V2 style plain ID - fetch directly
         Organization.find(org_id)
       end
     end
@@ -59,8 +73,11 @@ module Pipedrive
       return @person if defined?(@person)
       return nil unless person_id
 
-      @person = if person_id.is_a?(Hash)
+      @person = case person_id
+      when Hash
         Person.new(person_id)
+      when LazyRelatedObject
+        Person.find(person_id.to_i)
       else
         Person.find(person_id)
       end
@@ -71,8 +88,11 @@ module Pipedrive
       return @user if defined?(@user)
       return nil unless user_id
 
-      @user = if user_id.is_a?(Hash)
+      @user = case user_id
+      when Hash
         User.new(user_id)
+      when LazyRelatedObject
+        User.find(user_id.to_i)
       else
         User.find(user_id)
       end

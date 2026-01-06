@@ -73,6 +73,21 @@ module Pipedrive
       related_objects
     end
 
+    # Wraps an ID field with LazyRelatedObject for V1-style hash access
+    # Only wraps if the value is a plain Integer (V2 style)
+    # V1 returned nested objects, V2 returns just IDs
+    #
+    # @param [Symbol] field_name - the field to wrap
+    # @param [Class] resource_class - the class to use for lazy loading
+    def wrap_related_id_field(field_name, resource_class)
+      return unless respond_to?(field_name)
+      value = send(field_name)
+      # Only wrap if it's a plain ID (Integer), not already a Hash or wrapper
+      if value.is_a?(Integer)
+        @table[field_name] = LazyRelatedObject.new(value, resource_class)
+      end
+    end
+
     # Flatten V2 custom_fields structure to V1-style top-level attributes
     #
     # V2 returns: { "custom_fields": { "hash_key": { "value": X, "currency": "EUR" } } }
