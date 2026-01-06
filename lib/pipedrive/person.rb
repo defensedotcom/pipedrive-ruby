@@ -9,6 +9,22 @@ module Pipedrive
       PersonField
     end
 
+    # Override initialize to alias V2 field names for backwards compatibility
+    # V2 API returns 'phones' and 'emails', but V1 used 'phone' and 'email'
+    def initialize(attrs = {})
+      super(attrs)
+
+      # Alias phones → phone for backwards compatibility
+      if respond_to?(:phones) && !respond_to?(:phone)
+        @table[:phone] = phones
+      end
+
+      # Alias emails → email for backwards compatibility
+      if respond_to?(:emails) && !respond_to?(:email)
+        @table[:email] = emails
+      end
+    end
+
     # Lazy-load organization from org_id
     def organization
       return @organization if defined?(@organization)

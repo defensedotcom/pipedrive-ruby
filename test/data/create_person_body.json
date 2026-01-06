@@ -14,14 +14,14 @@
     "undone_activities_count": null,
     "files_count": null,
     "active_flag": true,
-    "phone": [
+    "phones": [
       {
         "label": "",
         "value": "0123456789",
         "primary": true
       }
     ],
-    "email": [
+    "emails": [
       {
         "label": "",
         "value": "john@dope.org",
