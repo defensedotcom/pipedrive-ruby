@@ -9,6 +9,7 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
 
   context "custom field flattening on read" do
     setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
       stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
       @deal = ::Pipedrive::Deal.find(123)
     end
@@ -197,6 +198,7 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
 
   context "lazy-loading related objects" do
     setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
       stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
       stub :get, "organizations/2", "find_organization_body.json"
       stub :get, "persons/2739", "find_person_body.json", nil, 'v2'
@@ -238,6 +240,7 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
 
   context "LazyRelatedObject wrapper" do
     setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
       stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
       @deal = ::Pipedrive::Deal.find(123)
     end
@@ -302,6 +305,7 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
 
   context "owner_id to user_id aliasing" do
     setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
       stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
       @deal = ::Pipedrive::Deal.find(123)
     end
