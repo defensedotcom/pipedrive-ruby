@@ -19,5 +19,6 @@ module Pipedrive
 
     # Lazy-load related resources
     lazy_load_relation :owner, :owner_id, 'User'
+    alias_method :user, :owner
   end
 end
