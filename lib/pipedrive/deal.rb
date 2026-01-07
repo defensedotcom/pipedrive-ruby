@@ -54,6 +54,7 @@ module Pipedrive
     lazy_load_relation :organization, :org_id, 'Organization'
     lazy_load_relation :person, :person_id, 'Person'
     lazy_load_relation :user, :user_id, 'User'
+    lazy_load_relation :stage, :stage_id, 'Stage'
 
     def add_product(opts = {})
       res = post "#{resource_path}/#{id}/products", :body => opts
