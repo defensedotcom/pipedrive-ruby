@@ -100,7 +100,7 @@ module Pipedrive
       return nil if @id.nil?
 
       @loaded_object = @resource_class.find(@id)
-    rescue
+    rescue StandardError
       nil
     end
   end
