@@ -116,6 +116,51 @@ Ruby's `Time.parse` handles both formats automatically.
 
 See [V2_MIGRATION_NOTES.md](V2_MIGRATION_NOTES.md) for complete technical details.
 
+## Local Development
+
+### Setup
+
+```bash
+bundle install
+```
+
+### Testing the Gem in IRB
+
+You can test the gem interactively using Ruby's IRB. There are two approaches:
+
+**Using plain irb** (manually add the load path):
+
+```bash
+irb -I lib -r pipedrive-ruby
+```
+
+**Using bundle exec irb** (automatically loads Gemfile dependencies):
+
+```bash
+bundle exec irb
+```
+
+Then add the lib directory to the load path and require the gem:
+
+```ruby
+$LOAD_PATH.unshift('./lib')
+require 'pipedrive-ruby'
+```
+
+Once loaded, you can authenticate and interact with the API:
+
+```ruby
+Pipedrive.authenticate('your-api-token')
+Pipedrive::Deal.all
+Pipedrive::Person.find_by_name('John')
+```
+
+### Running Tests
+
+```bash
+rake test
+```
+
 ## Contributing to pipedrive-ruby
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
