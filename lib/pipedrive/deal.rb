@@ -57,6 +57,22 @@ module Pipedrive
     lazy_load_relation :stage, :stage_id, 'Stage'
     lazy_load_relation :pipeline, :pipeline_id, 'Pipeline'
 
+    # V1 compatibility: weighted_value was removed in V2
+    # Calculate as value * probability / 100
+    # Won deals use 100% probability, lost deals use 0%
+    def weighted_value
+      return nil if value.nil?
+
+      effective_probability = case status
+        when 'won' then 100
+        when 'lost' then 0
+        else probability
+      end
+      return nil if effective_probability.nil?
+
+      value * effective_probability / 100.0
+    end
+
     def add_product(opts = {})
       res = post "#{resource_path}/#{id}/products", :body => opts
       res.success? ? res['data']['product_attachment_id'] : bad_response(res,opts)

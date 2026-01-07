@@ -10,6 +10,7 @@
     "org_id": 2,
     "stage_id": 1,
     "pipeline_id": 1,
+    "probability": 50,
     "status": "open",
     "add_time": "2017-05-23T21:08:48Z",
     "update_time": "2017-05-23T21:08:48Z",
