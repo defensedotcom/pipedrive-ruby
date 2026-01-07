@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Sales Pipeline",
+    "url_title": "sales-pipeline",
+    "order_nr": 1,
+    "active": true
+  }
+}

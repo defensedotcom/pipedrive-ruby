@@ -405,4 +405,104 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       })
     end
   end
+
+  context "Person.person method" do
+    setup do
+      stub :get, "persons/2739", "find_person_body.json", nil, 'v2'
+      @person = ::Pipedrive::Person.find(2739)
+    end
+
+    should "return self for V1 participants compatibility" do
+      assert_equal @person.object_id, @person.person.object_id
+    end
+
+    should "allow hash-style access via person method" do
+      assert_equal "Vincent Test", @person.person["name"]
+    end
+  end
+
+  context "Deal.stage lazy-load" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      stub :get, "stages/1", "find_stage_body.json", nil, 'v2'
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "lazy-load stage" do
+      stage = @deal.stage
+
+      assert stage.instance_of?(::Pipedrive::Stage)
+      assert_equal "Proposal Required", stage.name
+    end
+  end
+
+  context "Deal.pipeline lazy-load" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      stub :get, "pipelines/1", "find_pipeline_body.json", nil, 'v2'
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "lazy-load pipeline" do
+      pipeline = @deal.pipeline
+
+      assert pipeline.instance_of?(::Pipedrive::Pipeline)
+      assert_equal "Sales Pipeline", pipeline.name
+    end
+  end
+
+  context "Organization.user alias" do
+    setup do
+      stub :get, "organizations/2", "find_organization_body.json"
+      stub :get, "users/1746472", "find_user_body.json", nil, 'v1'
+      @org = ::Pipedrive::Organization.find(2)
+    end
+
+    should "alias user to owner" do
+      user = @org.user
+
+      assert user.instance_of?(::Pipedrive::User)
+      assert_equal "Vincent Jaouen", user.name
+    end
+  end
+
+  context "Product.user alias" do
+    setup do
+      stub :get, "products/1", "find_product_body.json", nil, 'v2'
+      stub :get, "users/1746472", "find_user_body.json", nil, 'v1'
+      @product = ::Pipedrive::Product.find(1)
+    end
+
+    should "alias user to owner" do
+      user = @product.user
+
+      assert user.instance_of?(::Pipedrive::User)
+      assert_equal "Vincent Jaouen", user.name
+    end
+  end
+
+  context "reference-type custom field wrapping" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "wrap org-type custom field with LazyRelatedObject" do
+      # f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1 is field_type: org
+      partner_org = @deal.f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1
+
+      assert partner_org.is_a?(Pipedrive::LazyRelatedObject)
+      assert_equal 99, partner_org.to_i
+    end
+
+    should "allow dig access on wrapped custom field" do
+      stub :get, "organizations/99", "find_organization_body.json"
+
+      partner_org = @deal.f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1
+      assert_equal "Office San Francisco", partner_org.dig("name")
+    end
+  end
 end
