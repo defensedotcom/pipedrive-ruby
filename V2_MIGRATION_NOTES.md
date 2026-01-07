@@ -155,6 +155,47 @@ Source: https://pipedrive.readme.io/docs/pipedrive-api-v2-migration-guide#post-a
    - ✅ **Handled on write**: `transform_create_opts` converts to `[{ "value": "...", "primary": true, "label": "work" }]`
    - ✅ **Handled on read**: `initialize` aliases `emails` → `email` for backwards compatibility
 
+### LazyRelatedObject Wrapper (v1.0.4+)
+
+V1 API returned nested objects for related IDs, allowing hash-style access:
+```ruby
+# V1 style - org_id was a nested object
+deal.org_id["name"]      # => "Acme Corp"
+deal.org_id["value"]     # => 123
+deal.user_id["email"]    # => "john@example.com"
+```
+
+V2 API returns just the ID (integer). The `LazyRelatedObject` wrapper bridges this gap:
+```ruby
+# V2 with wrapper - still works!
+deal.org_id.to_i         # => 123 (acts as integer)
+deal.org_id == 123       # => true
+deal.org_id + 1          # => 124 (arithmetic works)
+deal.org_id["name"]      # => "Acme Corp" (lazy-loads Organization)
+deal.org_id["value"]     # => 123 (returns ID for V1 compatibility)
+```
+
+**Wrapped fields by resource:**
+- **Deal**: `org_id`, `person_id`, `user_id`, `owner_id`, `creator_user_id`
+- **Organization**: `owner_id`
+- **Person**: `org_id`, `owner_id`
+- **Activity**: `org_id`, `person_id`, `user_id`, `deal_id`, `owner_id`
+- **Product**: `owner_id`
+
+**Additional V1 compatibility methods:**
+- `Organization#owner_name` - fetches owner name (removed in V2 nested objects)
+
+### Custom Field Validation (v1.0.4+)
+
+V2 API has stricter validation for custom fields:
+
+1. **Multi-option fields** (`field_type: 'set'`) must be arrays:
+   - ✅ **Handled**: `format_custom_field_value` wraps single values in arrays automatically
+   - Example: `123` becomes `[123]`
+
+2. **Empty text fields** are rejected:
+   - ✅ **Handled**: Nil and empty string values are filtered out before sending to API
+
 ### Test Cases to Update
 - [ ] Update WebMock stubs to use v2 URLs
 - [ ] Update test fixtures with v2 response formats

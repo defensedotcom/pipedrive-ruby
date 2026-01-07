@@ -235,4 +235,170 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       assert_equal org1.object_id, org2.object_id
     end
   end
+
+  context "LazyRelatedObject wrapper" do
+    setup do
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "wrap org_id as LazyRelatedObject" do
+      assert @deal.org_id.is_a?(Pipedrive::LazyRelatedObject)
+    end
+
+    should "wrap person_id as LazyRelatedObject" do
+      assert @deal.person_id.is_a?(Pipedrive::LazyRelatedObject)
+    end
+
+    should "wrap user_id as LazyRelatedObject (aliased from owner_id)" do
+      assert @deal.user_id.is_a?(Pipedrive::LazyRelatedObject)
+    end
+
+    should "return ID with to_i" do
+      assert_equal 2, @deal.org_id.to_i
+    end
+
+    should "return ID with to_s" do
+      assert_equal "2", @deal.org_id.to_s
+    end
+
+    should "support equality with integer" do
+      assert @deal.org_id == 2
+      assert @deal.org_id != 3
+    end
+
+    should "support arithmetic operations" do
+      assert_equal 3, @deal.org_id + 1
+      assert_equal 1, @deal.org_id - 1
+      assert_equal 4, @deal.org_id * 2
+    end
+
+    should "support comparison operations" do
+      assert @deal.org_id > 1
+      assert @deal.org_id < 3
+      assert @deal.org_id >= 2
+      assert @deal.org_id <= 2
+    end
+
+    should "return ID for ['value'] access (V1 compatibility)" do
+      assert_equal 2, @deal.org_id['value']
+    end
+
+    should "return ID for ['id'] access (V1 compatibility)" do
+      assert_equal 2, @deal.org_id['id']
+    end
+
+    should "lazy-load and return property for other keys" do
+      stub :get, "organizations/2", "find_organization_body.json"
+
+      assert_equal "Office San Francisco", @deal.org_id['name']
+    end
+
+    should "support hash-style equality (V1 compatibility)" do
+      assert @deal.org_id == { 'id' => 2 }
+      assert @deal.org_id == { :id => 2 }
+    end
+  end
+
+  context "owner_id to user_id aliasing" do
+    setup do
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "alias owner_id to user_id for backwards compatibility" do
+      assert_equal @deal.owner_id.to_i, @deal.user_id.to_i
+      assert_equal 1746472, @deal.user_id.to_i
+    end
+  end
+
+  context "multi-option field formatting" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+    end
+
+    should "wrap single values in arrays for set (multi-option) fields" do
+      stub_request(:post, "https://api.pipedrive.com/api/v2/deals")
+        .with(
+          headers: {
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Ruby.Pipedrive.Api',
+            'x-api-token' => 'some-token'
+          }
+        ) { |request|
+          body = JSON.parse(request.body)
+          # Verify multi-option field was wrapped in array
+          body.dig('custom_fields', 'd4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5') == [42]
+        }
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "create_deal_body.json")),
+          headers: { 'Content-Type' => 'application/json' }
+        )
+
+      ::Pipedrive::Deal.create({
+        title: 'Test Deal',
+        'd4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5' => 42
+      })
+    end
+  end
+
+  context "empty text field filtering" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+    end
+
+    should "filter out empty string custom field values" do
+      stub_request(:post, "https://api.pipedrive.com/api/v2/deals")
+        .with(
+          headers: {
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Ruby.Pipedrive.Api',
+            'x-api-token' => 'some-token'
+          }
+        ) { |request|
+          body = JSON.parse(request.body)
+          # Verify empty custom field was NOT included
+          !body.key?('custom_fields') || !body['custom_fields'].key?('e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6')
+        }
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "create_deal_body.json")),
+          headers: { 'Content-Type' => 'application/json' }
+        )
+
+      ::Pipedrive::Deal.create({
+        title: 'Test Deal',
+        'e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6' => ''
+      })
+    end
+
+    should "filter out nil custom field values" do
+      stub_request(:post, "https://api.pipedrive.com/api/v2/deals")
+        .with(
+          headers: {
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'Ruby.Pipedrive.Api',
+            'x-api-token' => 'some-token'
+          }
+        ) { |request|
+          body = JSON.parse(request.body)
+          # Verify nil custom field was NOT included
+          !body.key?('custom_fields') || !body['custom_fields'].key?('e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6')
+        }
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "create_deal_body.json")),
+          headers: { 'Content-Type' => 'application/json' }
+        )
+
+      ::Pipedrive::Deal.create({
+        title: 'Test Deal',
+        'e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6' => nil
+      })
+    end
+  end
 end
