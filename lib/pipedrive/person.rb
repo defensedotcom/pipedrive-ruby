@@ -34,6 +34,12 @@ module Pipedrive
     lazy_load_relation :organization, :org_id, 'Organization'
     lazy_load_relation :owner, :owner_id, 'User'
 
+    # V1 compatibility: deal.participants returned objects with a .person attribute
+    # V2 returns Person objects directly, so .person returns self
+    def person
+      self
+    end
+
     class << self
 
       # Transform create options for V2 API
