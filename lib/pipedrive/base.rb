@@ -104,11 +104,14 @@ module Pipedrive
       custom_fields_hash.each do |field_key, field_data|
         if field_data.is_a?(Hash)
           # Extract the primary value
-          if field_data.key?('value')
-            flattened[field_key] = field_data['value']
+          value = if field_data.key?('value')
+            field_data['value']
           elsif field_data.key?(:value)
-            flattened[field_key] = field_data[:value]
+            field_data[:value]
           end
+
+          # Wrap reference-type custom fields with LazyRelatedObject
+          flattened[field_key] = wrap_custom_field_reference(field_key, value)
 
           # Extract subfields (currency, etc.) with suffix pattern
           field_data.each do |subfield_key, subfield_value|
@@ -118,11 +121,47 @@ module Pipedrive
           end
         else
           # Simple value, just copy it
-          flattened[field_key] = field_data
+          flattened[field_key] = wrap_custom_field_reference(field_key, field_data)
         end
       end
 
       flattened
+    end
+
+    # Wraps a custom field value with LazyRelatedObject if it's a reference type
+    #
+    # @param [String] field_key - the custom field key
+    # @param [Object] value - the field value
+    # @return [Object] - wrapped value or original value
+    def wrap_custom_field_reference(field_key, value)
+      return value unless value.is_a?(Integer)
+
+      field_class = self.class.field_class
+      return value unless field_class
+
+      # Look up field definition (will fetch and cache if needed)
+      field = self.class.find_field_by_key(field_class, field_key)
+      return value unless field
+
+      resource_class = reference_field_resource_class(field.field_type)
+      return value unless resource_class
+
+      LazyRelatedObject.new(value, resource_class)
+    end
+
+    # Maps reference field types to their resource classes
+    #
+    # @param [String] field_type - the Pipedrive field type
+    # @return [Class, nil] - the resource class or nil if not a reference type
+    def reference_field_resource_class(field_type)
+      case field_type
+      when 'org'
+        Organization
+      when 'people', 'person'
+        Person
+      when 'user'
+        User
+      end
     end
 
     # Updates the object.
