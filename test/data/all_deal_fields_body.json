@@ -53,6 +53,13 @@
       "name": "Text Field",
       "field_type": "varchar",
       "options": null
+    },
+    {
+      "id": 103,
+      "key": "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1",
+      "name": "Partner Organization",
+      "field_type": "org",
+      "options": null
     }
   ]
 }

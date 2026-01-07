@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Test Product",
+    "code": "PROD-001",
+    "unit": "piece",
+    "owner_id": 1746472,
+    "active_flag": true
+  }
+}

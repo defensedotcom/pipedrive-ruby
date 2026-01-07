@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Proposal Required",
+    "pipeline_id": 1,
+    "order_nr": 1,
+    "active_flag": true
+  }
+}
