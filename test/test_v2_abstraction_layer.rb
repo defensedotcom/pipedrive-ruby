@@ -505,4 +505,37 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       assert_equal "Office San Francisco", partner_org.dig("name")
     end
   end
+
+  context "Deal.weighted_value" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "calculate weighted_value from value and probability" do
+      # value: 5000, probability: 50 => weighted_value: 2500.0
+      assert_equal 2500.0, @deal.weighted_value
+    end
+
+    should "return full value for won deals regardless of probability" do
+      won_deal = ::Pipedrive::Deal.new({ 'value' => 5000, 'probability' => 50, 'status' => 'won' })
+      assert_equal 5000.0, won_deal.weighted_value
+    end
+
+    should "return zero for lost deals regardless of probability" do
+      lost_deal = ::Pipedrive::Deal.new({ 'value' => 5000, 'probability' => 50, 'status' => 'lost' })
+      assert_equal 0.0, lost_deal.weighted_value
+    end
+
+    should "return nil if value is nil" do
+      deal = ::Pipedrive::Deal.new({ 'value' => nil, 'probability' => 50, 'status' => 'open' })
+      assert_nil deal.weighted_value
+    end
+
+    should "return nil if probability is nil for open deals" do
+      deal = ::Pipedrive::Deal.new({ 'value' => 5000, 'probability' => nil, 'status' => 'open' })
+      assert_nil deal.weighted_value
+    end
+  end
 end
