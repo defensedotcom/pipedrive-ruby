@@ -19,6 +19,7 @@ module Pipedrive
 
     # Lazy-load related resources
     lazy_load_relation :owner, :owner_id, 'User'
+    alias_method :user, :owner
 
     # V1 compatibility: owner_name was included in nested org objects
     # V2 removed it, so we fetch from the owner sub-resource
