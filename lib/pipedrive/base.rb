@@ -246,7 +246,11 @@ module Pipedrive
           ivar = "@#{method_name}"
           return instance_variable_get(ivar) if instance_variable_defined?(ivar)
 
-          id_value = send(id_field) rescue nil
+          id_value = begin
+            send(id_field)
+          rescue StandardError
+            nil
+          end
           return nil unless id_value
 
           # Resolve class name string to actual class (handles load order issues)
@@ -301,7 +305,7 @@ module Pipedrive
             fields = field_class.all
             fields.each { |f| field_cache[f.key] = f if f.respond_to?(:key) }
             @fields_loaded = true
-          rescue => e
+          rescue StandardError
             # If field lookup fails, don't break the update - just skip resolution
             return nil
           end
