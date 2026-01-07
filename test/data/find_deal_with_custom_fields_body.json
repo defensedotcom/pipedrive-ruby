@@ -5,7 +5,7 @@
     "title": "Test Deal",
     "value": 5000,
     "currency": "USD",
-    "user_id": 1746472,
+    "owner_id": 1746472,
     "person_id": 2739,
     "org_id": 2,
     "stage_id": 1,
@@ -13,6 +13,7 @@
     "add_time": "2017-05-23T21:08:48Z",
     "update_time": "2017-05-23T21:08:48Z",
     "visible_to": "3",
+    "creator_user_id": 1746472,
     "custom_fields": {
       "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2": {
         "value": "Custom Value"
