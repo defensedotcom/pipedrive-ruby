@@ -421,6 +421,40 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
     end
   end
 
+  context "Person phone/email V1 compatibility" do
+    should "provide placeholder when phones array is empty" do
+      person = ::Pipedrive::Person.new({ 'name' => 'Test', 'phones' => [] })
+
+      assert_equal [{ 'value' => '', 'primary' => true }], person.phone
+      assert_equal '', person.phone.first['value']
+    end
+
+    should "provide placeholder when emails array is empty" do
+      person = ::Pipedrive::Person.new({ 'name' => 'Test', 'emails' => [] })
+
+      assert_equal [{ 'value' => '', 'primary' => true }], person.email
+      assert_equal '', person.email.first['value']
+    end
+
+    should "provide placeholder when phones/emails are nil" do
+      person = ::Pipedrive::Person.new({ 'name' => 'Test' })
+
+      assert_equal '', person.phone.first['value']
+      assert_equal '', person.email.first['value']
+    end
+
+    should "preserve actual phone/email values" do
+      person = ::Pipedrive::Person.new({
+        'name' => 'Test',
+        'phones' => [{ 'value' => '555-1234', 'primary' => true }],
+        'emails' => [{ 'value' => 'test@example.com', 'primary' => true }]
+      })
+
+      assert_equal '555-1234', person.phone.first['value']
+      assert_equal 'test@example.com', person.email.first['value']
+    end
+  end
+
   context "Deal.stage lazy-load" do
     setup do
       stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
