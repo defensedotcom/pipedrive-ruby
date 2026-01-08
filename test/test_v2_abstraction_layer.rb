@@ -559,17 +559,22 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
 
     should "return zero for lost deals regardless of probability" do
       lost_deal = ::Pipedrive::Deal.new({ 'value' => 5000, 'probability' => 50, 'status' => 'lost' })
-      assert_equal 0.0, lost_deal.weighted_value
+      assert_equal 0, lost_deal.weighted_value
     end
 
-    should "return nil if value is nil" do
+    should "return 0 if value is nil (V1 behavior)" do
       deal = ::Pipedrive::Deal.new({ 'value' => nil, 'probability' => 50, 'status' => 'open' })
-      assert_nil deal.weighted_value
+      assert_equal 0, deal.weighted_value
     end
 
-    should "return nil if probability is nil for open deals" do
+    should "return 0 if value is zero (V1 behavior)" do
+      deal = ::Pipedrive::Deal.new({ 'value' => 0, 'probability' => 50, 'status' => 'open' })
+      assert_equal 0, deal.weighted_value
+    end
+
+    should "return 0 if probability is nil for open deals (V1 behavior)" do
       deal = ::Pipedrive::Deal.new({ 'value' => 5000, 'probability' => nil, 'status' => 'open' })
-      assert_nil deal.weighted_value
+      assert_equal 0, deal.weighted_value
     end
   end
 

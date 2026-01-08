@@ -60,15 +60,17 @@ module Pipedrive
     # V1 compatibility: weighted_value was removed in V2
     # Calculate as value * probability / 100
     # Won deals use 100% probability, lost deals use 0%
+    # Returns 0 when value/probability are nil or zero (matching V1 behavior)
     def weighted_value
-      return nil if value.nil?
+      return 0 if value.nil? || value == 0
 
       effective_probability = case status
         when 'won' then 100
         when 'lost' then 0
         else probability
       end
-      return nil if effective_probability.nil?
+
+      return 0 if effective_probability.nil? || effective_probability == 0
 
       value * effective_probability / 100.0
     end
