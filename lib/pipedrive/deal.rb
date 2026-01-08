@@ -92,7 +92,7 @@ module Pipedrive
     end
 
     # V1 compatibility: formatted_value was removed in V2
-    # Format like V1: "US$1,234" (with thousands separator, no decimals)
+    # Format like V1: "US$1,234" or "US$1,234.01" (thousands separator, decimals only if non-zero)
     def formatted_value
       return nil if value.nil?
 
@@ -104,10 +104,16 @@ module Pipedrive
       }
       symbol = symbols[currency] || currency
 
-      # Format with thousands separator and no decimals
-      formatted_number = value.to_i.digits.each_slice(3).map(&:join).join(',').reverse
+      # Format integer part with thousands separator
+      integer_part = value.to_i.digits.each_slice(3).map(&:join).join(',').reverse
 
-      "#{symbol}#{formatted_number}"
+      # Include decimals only if non-zero (1234.00 → "1,234", 1234.01 → "1,234.01")
+      if value % 1 == 0
+        "#{symbol}#{integer_part}"
+      else
+        decimal_part = sprintf("%.2f", value % 1)[2..-1]
+        "#{symbol}#{integer_part}.#{decimal_part}"
+      end
     end
 
     # V1 compatibility: deleted was renamed to is_deleted in V2
