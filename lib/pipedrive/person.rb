@@ -25,6 +25,16 @@ module Pipedrive
         @table[:email] = emails
       end
 
+      # V1 compatibility: V1 always returned at least one entry even when empty
+      # V2 returns empty array, which breaks code expecting phone.first['value']
+      if @table[:phone].nil? || @table[:phone].empty?
+        @table[:phone] = [{ 'value' => '', 'primary' => true }]
+      end
+
+      if @table[:email].nil? || @table[:email].empty?
+        @table[:email] = [{ 'value' => '', 'primary' => true }]
+      end
+
       # Wrap ID fields for V1-style hash access
       wrap_related_id_field(:org_id, Organization)
       wrap_related_id_field(:owner_id, User)
