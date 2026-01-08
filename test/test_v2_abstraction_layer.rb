@@ -570,6 +570,19 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       assert_nil deal.formatted_value
     end
 
+    should "include decimals in formatted_value only when non-zero" do
+      # Whole number - no decimals
+      deal1 = ::Pipedrive::Deal.new({ 'value' => 1234.00, 'currency' => 'USD' })
+      assert_equal "US$1,234", deal1.formatted_value
+
+      # Non-zero decimals - include them
+      deal2 = ::Pipedrive::Deal.new({ 'value' => 1234.01, 'currency' => 'USD' })
+      assert_equal "US$1,234.01", deal2.formatted_value
+
+      deal3 = ::Pipedrive::Deal.new({ 'value' => 1234.50, 'currency' => 'EUR' })
+      assert_equal "€1,234.50", deal3.formatted_value
+    end
+
     should "alias deleted to is_deleted" do
       deal = ::Pipedrive::Deal.new({ 'is_deleted' => true })
       assert_equal true, deal.deleted
