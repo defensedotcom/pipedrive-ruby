@@ -20,5 +20,19 @@ module Pipedrive
     # Lazy-load related resources
     lazy_load_relation :owner, :owner_id, 'User'
     alias_method :user, :owner
+
+    # V1 compatibility: active_flag was replaced with is_deleted (negated)
+    def active_flag
+      return nil unless respond_to?(:is_deleted)
+
+      !is_deleted
+    end
+
+    # V1 compatibility: selectable was renamed to is_linkable
+    def selectable
+      return nil unless respond_to?(:is_linkable)
+
+      is_linkable
+    end
   end
 end
