@@ -15,6 +15,39 @@ module Pipedrive
 
       # Wrap ID fields for V1-style hash access
       wrap_related_id_field(:owner_id, User)
+
+      # V1 compatibility: address was flat fields (address_street_number, address_route, etc.)
+      # V2 returns nested object: { "value": "...", "street_number": "123", ... }
+      flatten_address_fields
+    end
+
+    # Flatten V2 nested address object to V1-style flat fields
+    def flatten_address_fields
+      return unless @table[:address]
+
+      addr = case @table[:address]
+        when Hash then @table[:address]
+        when OpenStruct then @table[:address].to_h
+        else return
+      end
+
+      # Store full address data for code that needs it
+      @table[:address_data] = addr
+
+      # V1 compatibility: address was a string, now it's nested with 'value'
+      @table[:address] = addr['value'] || addr[:value]
+
+      # Flatten nested fields to V1-style flat fields
+      @table[:address_street_number] = addr['street_number'] || addr[:street_number]
+      @table[:address_route] = addr['route'] || addr[:route]
+      @table[:address_locality] = addr['locality'] || addr[:locality]
+      @table[:address_admin_area_level_1] = addr['admin_area_level_1'] || addr[:admin_area_level_1]
+      @table[:address_admin_area_level_2] = addr['admin_area_level_2'] || addr[:admin_area_level_2]
+      @table[:address_country] = addr['country'] || addr[:country]
+      @table[:address_postal_code] = addr['postal_code'] || addr[:postal_code]
+      @table[:address_formatted_address] = addr['formatted_address'] || addr[:formatted_address]
+      @table[:address_subpremise] = addr['subpremise'] || addr[:subpremise]
+      @table[:address_sublocality] = addr['sublocality'] || addr[:sublocality]
     end
 
     # Lazy-load related resources

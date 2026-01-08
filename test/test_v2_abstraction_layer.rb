@@ -538,4 +538,92 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       assert_nil deal.weighted_value
     end
   end
+
+  context "Deal V1 convenience methods" do
+    setup do
+      stub :get, "dealFields", "all_deal_fields_body.json", nil, 'v1'
+      stub :get, "deals/123", "find_deal_with_custom_fields_body.json"
+      stub :get, "users/1746472", "find_user_body.json", nil, 'v1'
+      stub :get, "organizations/2", "find_organization_body.json"
+      stub :get, "persons/2739", "find_person_body.json"
+      @deal = ::Pipedrive::Deal.find(123)
+    end
+
+    should "return owner_name from lazy-loaded user" do
+      assert_equal "Vincent Jaouen", @deal.owner_name
+    end
+
+    should "return org_name from lazy-loaded organization" do
+      assert_equal "Office San Francisco", @deal.org_name
+    end
+
+    should "return person_name from lazy-loaded person" do
+      assert_equal "Vincent Test", @deal.person_name
+    end
+
+    should "return formatted_value with currency symbol and thousands separator" do
+      assert_equal "US$5,000", @deal.formatted_value
+    end
+
+    should "return nil for formatted_value when value is nil" do
+      deal = ::Pipedrive::Deal.new({ 'value' => nil, 'currency' => 'USD' })
+      assert_nil deal.formatted_value
+    end
+
+    should "alias deleted to is_deleted" do
+      deal = ::Pipedrive::Deal.new({ 'is_deleted' => true })
+      assert_equal true, deal.deleted
+
+      deal2 = ::Pipedrive::Deal.new({ 'is_deleted' => false })
+      assert_equal false, deal2.deleted
+    end
+  end
+
+  context "Organization V1 address field aliasing" do
+    setup do
+      stub :get, "organizations/2", "find_organization_v2_body.json"
+      @org = ::Pipedrive::Organization.find(2)
+    end
+
+    should "flatten nested address to V1-style flat fields" do
+      assert_equal "66", @org.address_street_number
+      assert_equal "Mint St", @org.address_route
+      assert_equal "San Francisco", @org.address_locality
+      assert_equal "California", @org.address_admin_area_level_1
+      assert_equal "San Francisco County", @org.address_admin_area_level_2
+      assert_equal "United States", @org.address_country
+      assert_equal "94103", @org.address_postal_code
+      assert_equal "66 Mint St, San Francisco, CA 94103, United States", @org.address_formatted_address
+    end
+
+    should "return address as string (the value field)" do
+      assert_equal "66 Mint St, San Francisco, CA 94103", @org.address
+    end
+
+    should "still have full address data available via address_data" do
+      assert @org.address_data.is_a?(Hash)
+      assert_equal "66", @org.address_data['street_number']
+    end
+  end
+
+  context "Product V1 compatibility methods" do
+    setup do
+      stub :get, "products/1", "find_product_body.json"
+      @product = ::Pipedrive::Product.find(1)
+    end
+
+    should "return active_flag as negation of is_deleted" do
+      assert_equal true, @product.active_flag
+    end
+
+    should "return selectable as alias for is_linkable" do
+      assert_equal true, @product.selectable
+    end
+
+    should "return false active_flag when is_deleted is true" do
+      product = ::Pipedrive::Product.new({ 'is_deleted' => true, 'is_linkable' => false })
+      assert_equal false, product.active_flag
+      assert_equal false, product.selectable
+    end
+  end
 end

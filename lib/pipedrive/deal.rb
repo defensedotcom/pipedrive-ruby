@@ -73,6 +73,48 @@ module Pipedrive
       value * effective_probability / 100.0
     end
 
+    # V1 compatibility: owner_name was removed in V2
+    # Fetch via lazy-loaded user relation
+    def owner_name
+      user&.name
+    end
+
+    # V1 compatibility: org_name was removed in V2
+    # Fetch via lazy-loaded organization relation
+    def org_name
+      organization&.name
+    end
+
+    # V1 compatibility: person_name was removed in V2
+    # Fetch via lazy-loaded person relation
+    def person_name
+      person&.name
+    end
+
+    # V1 compatibility: formatted_value was removed in V2
+    # Format like V1: "US$1,234" (with thousands separator, no decimals)
+    def formatted_value
+      return nil if value.nil?
+
+      # Common currency symbol mappings
+      symbols = {
+        'USD' => 'US$', 'EUR' => '€', 'GBP' => '£', 'JPY' => '¥',
+        'CAD' => 'CA$', 'AUD' => 'A$', 'CHF' => 'CHF', 'CNY' => '¥',
+        'INR' => '₹', 'BRL' => 'R$', 'MXN' => 'MX$', 'SGD' => 'S$'
+      }
+      symbol = symbols[currency] || currency
+
+      # Format with thousands separator and no decimals
+      formatted_number = value.to_i.digits.each_slice(3).map(&:join).join(',').reverse
+
+      "#{symbol}#{formatted_number}"
+    end
+
+    # V1 compatibility: deleted was renamed to is_deleted in V2
+    def deleted
+      is_deleted
+    end
+
     def add_product(opts = {})
       res = post "#{resource_path}/#{id}/products", :body => opts
       res.success? ? res['data']['product_attachment_id'] : bad_response(res,opts)

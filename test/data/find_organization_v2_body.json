@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "owner_id": 1746472,
+    "name": "Office San Francisco",
+    "is_deleted": false,
+    "visible_to": 3,
+    "update_time": "2017-05-22T20:46:24Z",
+    "add_time": "2017-05-02T01:35:39Z",
+    "address": {
+      "value": "66 Mint St, San Francisco, CA 94103",
+      "street_number": "66",
+      "route": "Mint St",
+      "sublocality": null,
+      "locality": "San Francisco",
+      "subpremise": null,
+      "admin_area_level_1": "California",
+      "admin_area_level_2": "San Francisco County",
+      "country": "United States",
+      "postal_code": "94103",
+      "formatted_address": "66 Mint St, San Francisco, CA 94103, United States"
+    },
+    "cc_email": "vincent@pipedrivemail.com"
+  }
+}

@@ -6,6 +6,7 @@
     "code": "PROD-001",
     "unit": "piece",
     "owner_id": 1746472,
-    "active_flag": true
+    "is_deleted": false,
+    "is_linkable": true
   }
 }
