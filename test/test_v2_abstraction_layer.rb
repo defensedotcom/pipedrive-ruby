@@ -301,6 +301,20 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       assert @deal.org_id == { 'id' => 2 }
       assert @deal.org_id == { :id => 2 }
     end
+
+    should "support Marshal serialization and deserialization" do
+      # Serialize the LazyRelatedObject
+      serialized = Marshal.dump(@deal.org_id)
+
+      # Deserialize it back
+      deserialized = Marshal.load(serialized)
+
+      # Verify it still works correctly
+      assert deserialized.is_a?(Pipedrive::LazyRelatedObject)
+      assert_equal 2, deserialized.to_i
+      assert_equal "2", deserialized.to_s
+      assert deserialized == 2
+    end
   end
 
   context "owner_id to user_id aliasing" do
