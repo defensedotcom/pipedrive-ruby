@@ -93,6 +93,17 @@ module Pipedrive
         super
     end
 
+    # Custom Marshal serialization - store class name instead of class object
+    def marshal_dump
+      [@id, @resource_class.name]
+    end
+
+    def marshal_load(data)
+      @id, class_name = data
+      @resource_class = Object.const_get(class_name)
+      @loaded_object = nil
+    end
+
     private
 
     def loaded_object
