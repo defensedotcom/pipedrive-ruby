@@ -543,9 +543,17 @@ module Pipedrive
         res = response || get(resource_path, options)
         if res.ok?
           data = res['data'].nil? ? [] : res['data'].map{|obj| new(obj)}
-          if get_absolutely_all && res['additional_data']['pagination'] && res['additional_data']['pagination'] && res['additional_data']['pagination']['more_items_in_collection']
-            options[:query] = options[:query].merge({:start => res['additional_data']['pagination']['next_start']})
-            data += self.all(nil,options,true)
+          if get_absolutely_all
+            if api_version == 'v2'
+              next_cursor = res.dig('additional_data', 'next_cursor')
+              if next_cursor
+                options[:query] = (options[:query] || {}).merge({ cursor: next_cursor })
+                data += self.all(nil, options, true)
+              end
+            elsif res['additional_data'] && res['additional_data']['pagination'] && res['additional_data']['pagination']['more_items_in_collection']
+              options[:query] = options[:query].merge({:start => res['additional_data']['pagination']['next_start']})
+              data += self.all(nil, options, true)
+            end
           end
           data
         else
