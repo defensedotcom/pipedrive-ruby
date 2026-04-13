@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 3,
+      "title": "Deal 3",
+      "value": 3000,
+      "currency": "USD",
+      "status": "open"
+    }
+  ],
+  "additional_data": {}
+}

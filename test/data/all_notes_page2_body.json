@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 3,
+      "content": "Note 3"
+    }
+  ],
+  "additional_data": {
+    "pagination": {
+      "start": 2,
+      "limit": 2,
+      "more_items_in_collection": false
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Deal 1",
+      "value": 1000,
+      "currency": "USD",
+      "status": "open"
+    },
+    {
+      "id": 2,
+      "title": "Deal 2",
+      "value": 2000,
+      "currency": "USD",
+      "status": "open"
+    }
+  ],
+  "additional_data": {
+    "next_cursor": "eyJmaXJzdCI6MiwibGFzdCI6Mn0"
+  }
+}
