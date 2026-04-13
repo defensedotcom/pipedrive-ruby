@@ -692,4 +692,114 @@ class TestV2AbstractionLayer < Test::Unit::TestCase
       assert_equal false, product.selectable
     end
   end
+
+  context "V2 pagination with cursor" do
+    should "issue second GET with cursor parameter when next_cursor present" do
+      # Stub first page with next_cursor
+      page1_stub = stub_request(:get, "https://api.pipedrive.com/api/v2/deals")
+        .with(headers: request_headers_v2)
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "all_deals_page1_body.json")),
+          headers: response_headers
+        )
+
+      # Stub second page with cursor parameter
+      page2_stub = stub_request(:get, "https://api.pipedrive.com/api/v2/deals")
+        .with(
+          headers: request_headers_v2,
+          query: { "cursor" => "eyJmaXJzdCI6MiwibGFzdCI6Mn0" }
+        )
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "all_deals_page2_body.json")),
+          headers: response_headers
+        )
+
+      deals = ::Pipedrive::Deal.all(nil, {}, true)
+
+      # Verify both pages were fetched
+      assert_requested page1_stub, times: 1
+      assert_requested page2_stub, times: 1
+
+      # Verify all items were returned
+      assert_equal 3, deals.length
+      assert_equal [1, 2, 3], deals.map(&:id)
+    end
+
+    should "stop recursion when next_cursor is absent" do
+      # Stub single page without next_cursor
+      stub_request(:get, "https://api.pipedrive.com/api/v2/deals")
+        .with(headers: request_headers_v2)
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "all_deals_page2_body.json")),
+          headers: response_headers
+        )
+
+      deals = ::Pipedrive::Deal.all(nil, {}, true)
+
+      # Only one item from the single page
+      assert_equal 1, deals.length
+      assert_equal 3, deals.first.id
+    end
+  end
+
+  context "V1 pagination with start parameter" do
+    should "issue second GET with start parameter when more_items_in_collection is true" do
+      # Stub first page with more_items_in_collection: true
+      page1_stub = stub_request(:get, "https://api.pipedrive.com/v1/notes")
+        .with(
+          headers: request_headers,
+          query: { "api_token" => "some-token" }
+        )
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "all_notes_page1_body.json")),
+          headers: response_headers
+        )
+
+      # Stub second page with start parameter
+      page2_stub = stub_request(:get, "https://api.pipedrive.com/v1/notes")
+        .with(
+          headers: request_headers,
+          query: { "api_token" => "some-token", "start" => 2 }
+        )
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "all_notes_page2_body.json")),
+          headers: response_headers
+        )
+
+      notes = ::Pipedrive::Note.all(nil, { query: { api_token: "some-token" } }, true)
+
+      # Verify both pages were fetched
+      assert_requested page1_stub, times: 1
+      assert_requested page2_stub, times: 1
+
+      # Verify all items were returned
+      assert_equal 3, notes.length
+      assert_equal [1, 2, 3], notes.map(&:id)
+    end
+
+    should "stop recursion when more_items_in_collection is false" do
+      # Stub single page with more_items_in_collection: false
+      stub_request(:get, "https://api.pipedrive.com/v1/notes")
+        .with(
+          headers: request_headers,
+          query: { "api_token" => "some-token" }
+        )
+        .to_return(
+          status: 200,
+          body: File.read(File.join(File.dirname(__FILE__), "data", "all_notes_page2_body.json")),
+          headers: response_headers
+        )
+
+      notes = ::Pipedrive::Note.all(nil, { query: { api_token: "some-token" } }, true)
+
+      # Only one item from the single page
+      assert_equal 1, notes.length
+      assert_equal 3, notes.first.id
+    end
+  end
 end
